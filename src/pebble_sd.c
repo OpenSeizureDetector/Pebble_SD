@@ -25,6 +25,8 @@
 #include <pebble.h>
 
 #include "pebble_sd.h"
+#include "pebble_process_info.h"
+extern const PebbleProcessInfo __pbl_app_info;
 
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
@@ -181,6 +183,7 @@ void draw_spec(Layer *sl, GContext *ctx) {
  * window_load(): Initialise main window.
  */
 static void window_load(Window *window) {
+  static char verStr[16];
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
@@ -209,7 +212,10 @@ static void window_load(Window *window) {
 				   }, 
 				   .size = { bounds.size.w, ALARM_SIZE } 
 				 });
-  text_layer_set_text(alarm_layer, "ALARM");
+  snprintf(verStr,sizeof(verStr),"V%d.%d",
+	   __pbl_app_info.process_version.major,
+	   __pbl_app_info.process_version.minor);
+  text_layer_set_text(alarm_layer,verStr);
   text_layer_set_text_alignment(alarm_layer, GTextAlignmentCenter);
   text_layer_set_font(alarm_layer, 
 		      fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
