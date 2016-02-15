@@ -2,9 +2,9 @@
   Pebble_sd - a simple accelerometer based seizure detector that runs on a
   Pebble smart watch (http://getpebble.com).
 
-  See http://openseizuredetector.org for more information.
+  See http://openseizuredetector.org.uk for more information.
 
-  Copyright Graham Jones, 2015.
+  Copyright Graham Jones, 2015, 2016.
 
   This file is part of pebble_sd.
 
@@ -28,6 +28,7 @@
 
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
+int dataUpdatePeriod; // number of seconds between sending data to the phone.
 int alarmFreqMin;    // Bin number of lower boundary of region of interest
 int alarmFreqMax;    // Bin number of higher boundary of region of interest
 int warnTime;        // number of seconds above threshold to raise warning
@@ -72,12 +73,15 @@ int alarmCount = 0;    // number of seconds that we have been in an alarm state.
 /************************************************************************
  * clock_tick_handler() - Analyse data and update display.
  * Updates the text layer clock_layer to show current time.
- * This function is the handler for tick events.*/
+ * This function is the handler for tick events and is called every 
+ * second.
+ */
 static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   static char s_time_buffer[16];
   static char s_alarm_buffer[64];
   static char s_buffer[256];
   static int analysisCount=0;
+  static int dataUpdateCount = 0;
 
   /* Only process data every ANALYSIS_PERIOD seconds */
   analysisCount++;
@@ -109,23 +113,24 @@ static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 	//vibes_long_pulse();
 	text_layer_set_text(alarm_layer, "** FALL **");
       }
-      // Send data to phone
-      sendSdData();
+      // Send data to phone if we have an alarm condition.
+      if (alarmState != 0) {
+	sendSdData();
+      }
     }
     // Re-set counter.
     analysisCount = 0;
   }
+
+  // See if it is time to send data to the phone.
+  dataUpdateCount++;
+  if (dataUpdateCount>=dataUpdatePeriod) {
+    sendSdData();
+    dataUpdateCount = 0;
+  }
  
-
-  // Update data display.
-  //snprintf(s_buffer,sizeof(s_buffer),
-  //	   "max=%d, P=%ld\n%d Hz",
-  //	   /*latestAccelData.x, latestAccelData.y, latestAccelData.z,*/
-  //	   maxVal,specPower,maxFreq
-  //	   );
+  // Update the display
   text_layer_set_text(text_layer, "OpenSeizureDetector");
-
-  // and update clock display.
   if (clock_is_24h_style()) {
     strftime(s_time_buffer, sizeof(s_time_buffer), "%H:%M:%S", tick_time);
   } else {
@@ -250,6 +255,9 @@ static void window_unload(Window *window) {
 static void init(void) {
   APP_LOG(APP_LOG_LEVEL_DEBUG,"init() - Loading persistent storage variables...");
   // Load data from persistent storage into global variables.
+  dataUpdatePeriod = DATA_UPDATE_PERIOD_DEFAULT;
+  if (persist_exists(KEY_DATA_UPDATE_PERIOD))
+    dataUpdatePeriod = persist_read_int(KEY_DATA_UPDATE_PERIOD);
   alarmFreqMin = ALARM_FREQ_MIN_DEFAULT;
   if (persist_exists(KEY_ALARM_FREQ_MIN))
     alarmFreqMin = persist_read_int(KEY_ALARM_FREQ_MIN);
@@ -301,10 +309,9 @@ static void init(void) {
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Initialising Communications System....");
   comms_init();
 
-  /* Subscribe to TickTimerService */
+  /* Subscribe to TickTimerService for analysis */
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Intialising Clock Timer....");
   tick_timer_service_subscribe(SECOND_UNIT, clock_tick_handler);
-
 }
 
 /**
@@ -312,6 +319,7 @@ static void init(void) {
  */
 static void deinit(void) {
   // Save settings to persistent storage
+  persist_write_int(KEY_DATA_UPDATE_PERIOD,dataUpdatePeriod);
   persist_write_int(KEY_ALARM_FREQ_MIN,alarmFreqMin);
   persist_write_int(KEY_ALARM_FREQ_MAX,alarmFreqMax);
   persist_write_int(KEY_WARN_TIME,warnTime);

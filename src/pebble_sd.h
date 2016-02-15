@@ -34,6 +34,10 @@
 #define ANALYSIS_PERIOD 3  // number of seconds between fft analysis and screen updates.
 
 // default values of seizure detector settings
+#define DATA_UPDATE_PERIOD_DEFAULT 20 // number of seconds between sending
+                            //data to phone
+                            // note data is sent instantaneously if an alarm
+                            // condition is detected.
 #define ALARM_FREQ_MIN_DEFAULT 5  // Hz
 #define ALARM_FREQ_MAX_DEFAULT 10 // Hz
 #define WARN_TIME_DEFAULT      5 // sec
@@ -84,6 +88,7 @@
 #define KEY_FALL_THRESH_MAX 22
 #define KEY_FALL_WINDOW 23
 #define KEY_FALL_ACTIVE 24
+#define KEY_DATA_UPDATE_PERIOD 25
 
 // Values of the KEY_DATA_TYPE entry in a message
 #define DATA_TYPE_RESULTS 1   // Analysis Results
@@ -92,6 +97,7 @@
 
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
+extern int dataUpdatePeriod; // period (in sec) between sending data to the phone
 extern int alarmFreqMin;    // Minimum frequency (in Hz) for analysis region of interest.
 extern int alarmFreqMax;    // Maximum frequency (in Hz) for analysis region of interest.
 extern int nMin, nMax;      // Bin number of region of interest boundaries.
