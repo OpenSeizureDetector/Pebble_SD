@@ -47,11 +47,15 @@ int fallThreshMax = 0;  // fall detection maximum (upper) threshold (milli-g)
 int fallWindow = 0;     // fall detection window (milli-seconds).
 int fallDetected = 0;   // flag to say if fall is detected (<>0 is fall)
 
+int isMuted = 0;        // flag to say if alarms are muted.
+int muteTime = 0;       // time (in sec) that alarms have been muted.
+int mutePeriod = 0;     // Period for which alarms are muted (sec)
 
 Window *window;
 TextLayer *text_layer;
 TextLayer *alarm_layer;
 TextLayer *clock_layer;
+TextLayer *batt_layer;
 Layer *spec_layer;
 AccelData latestAccelData;  // Latest accelerometer readings received.
 int maxVal = 0;       // Peak amplitude in spectrum.
@@ -79,6 +83,7 @@ int alarmCount = 0;    // number of seconds that we have been in an alarm state.
  * second.
  */
 static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+  static char s_batt_buffer[16];
   static char s_time_buffer[16];
   static char s_alarm_buffer[64];
   static char s_buffer[256];
@@ -97,23 +102,33 @@ static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 
       // If no seizure detected, modify alarmState to reflect potential fall
       // detection
-      if ((alarmState == 0) && (fallDetected==1)) alarmState = 3;
+      if ((alarmState == ALARM_STATE_OK) && (fallDetected==1))
+	alarmState = ALARM_STATE_FALL;
 
       //  Display alarm message on screen.
-      if (alarmState == 0) {
+      if (alarmState == ALARM_STATE_OK) {
 	text_layer_set_text(alarm_layer, "OK");
       }
-      if (alarmState == 1) {
+      if (alarmState == ALARM_STATE_WARN) {
 	//vibes_short_pulse();
 	text_layer_set_text(alarm_layer, "WARNING");
       }
-      if (alarmState == 2) {
+      if (alarmState == ALARM_STATE_ALARM) {
 	//vibes_long_pulse();
 	text_layer_set_text(alarm_layer, "** ALARM **");
       }
-      if (alarmState == 3) {
+      if (alarmState == ALARM_STATE_FALL) {
 	//vibes_long_pulse();
 	text_layer_set_text(alarm_layer, "** FALL **");
+      }
+      if (isMuted) {
+	if (muteTime < mutePeriod) {
+	  text_layer_set_text(alarm_layer, "** MUTE **");
+	  muteTime += 1;
+	} else {
+	  isMuted = 0;
+	  muteTime = 0;
+	}
       }
       // Send data to phone if we have an alarm condition.
       if (alarmState != 0) {
@@ -138,12 +153,12 @@ static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   } else {
     strftime(s_time_buffer, sizeof(s_time_buffer), "%I:%M:%S", tick_time);
   }
-  BatteryChargeState charge_state = battery_state_service_peek();
-  snprintf(s_time_buffer,sizeof(s_time_buffer),
-	   "%s %d%%", 
-	   s_time_buffer,
-	   charge_state.charge_percent);
   text_layer_set_text(clock_layer, s_time_buffer);
+  BatteryChargeState charge_state = battery_state_service_peek();
+  snprintf(s_batt_buffer,sizeof(s_batt_buffer),
+  	   "%d%%", 
+  	   charge_state.charge_percent);
+  text_layer_set_text(batt_layer, s_batt_buffer);
 }
 
 
@@ -177,6 +192,64 @@ void draw_spec(Layer *sl, GContext *ctx) {
 
 }
 
+
+/**
+ * Called when up button is first pressed - just displays message for user.
+ */
+static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
+  if (isMuted) 
+    text_layer_set_text(alarm_layer, "Hold to Cancel Mute");
+  else
+    text_layer_set_text(alarm_layer, "Hold to Mute");    
+}
+
+/**
+ * Called when down button is first pressed - just displays message for user.
+ */
+static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
+  text_layer_set_text(alarm_layer, "Hold to Alarm");
+}
+
+/**
+ * Called following long click of up button - mutes alarms to prevent
+ * alarm initiation
+ */
+static void up_long_click_handler(ClickRecognizerRef recognizer, void *context) {
+  if (isMuted) {
+    text_layer_set_text(alarm_layer, "Mute Cancelled");
+    isMuted = 0;
+    muteTime = 0;
+  } else {
+    text_layer_set_text(alarm_layer, "**Mute**");
+    isMuted = 1;
+    muteTime = 0;
+  }
+}
+
+static void down_long_click_handler(ClickRecognizerRef recognizer, void *context) {
+  text_layer_set_text(alarm_layer, "**Alarm**");
+}
+
+/**
+ *  Register callbacks for button clicks.
+ */
+static void click_config_provider(void *context) {
+  // Register the ClickHandlers
+  window_raw_click_subscribe(BUTTON_ID_UP,
+			     up_click_handler,
+			     NULL,NULL);
+  window_raw_click_subscribe(BUTTON_ID_DOWN,
+			     down_click_handler,
+			     NULL,NULL);
+  window_long_click_subscribe(BUTTON_ID_UP, 1000,
+			      up_long_click_handler,
+			      NULL);
+  window_long_click_subscribe(BUTTON_ID_DOWN, 1000,
+			      down_long_click_handler,
+			      NULL);
+}
+
+
 /**********************************************************************/
 
 /**
@@ -192,11 +265,12 @@ static void window_load(Window *window) {
 				   .origin = { 0, 0 }, 
 				   .size = { bounds.size.w, 
 					     bounds.size.h
+					     -BATT_SIZE
 					     -CLOCK_SIZE
 					     -ALARM_SIZE
 					     -SPEC_SIZE } 
 				 });
-  text_layer_set_text(text_layer, "Press a button");
+  text_layer_set_text(text_layer, "OpenSeizureDetector");
   text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
   text_layer_set_font(text_layer, 
 		      fonts_get_system_font(FONT_KEY_GOTHIC_24));
@@ -206,6 +280,7 @@ static void window_load(Window *window) {
   alarm_layer = text_layer_create(
 				 (GRect) { 
 				   .origin = { 0, bounds.size.h 
+					       - BATT_SIZE
 					       - CLOCK_SIZE
 					       - ALARM_SIZE
 					       - SPEC_SIZE
@@ -225,7 +300,10 @@ static void window_load(Window *window) {
   /* Create layer for spectrum display */
   spec_layer = layer_create(
 				 (GRect) { 
-				   .origin = { 0, bounds.size.h - CLOCK_SIZE - SPEC_SIZE }, 
+				   .origin = { 0, bounds.size.h
+					       - BATT_SIZE
+					       - CLOCK_SIZE
+					       - SPEC_SIZE }, 
 				   .size = { bounds.size.w, SPEC_SIZE } 
 				 });
   layer_set_update_proc(spec_layer,draw_spec);
@@ -234,7 +312,9 @@ static void window_load(Window *window) {
   /* Create text layer for clock display */
   clock_layer = text_layer_create(
 				 (GRect) { 
-				   .origin = { 0, bounds.size.h - CLOCK_SIZE }, 
+				   .origin = { 0, bounds.size.h
+					       - BATT_SIZE
+					       - CLOCK_SIZE }, 
 				   .size = { bounds.size.w, CLOCK_SIZE } 
 				 });
   text_layer_set_text(clock_layer, "CLOCK");
@@ -242,6 +322,20 @@ static void window_load(Window *window) {
   text_layer_set_font(clock_layer, 
 		      fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
   layer_add_child(window_layer, text_layer_get_layer(clock_layer));
+
+  /* Create text layer for battery display */
+  batt_layer = text_layer_create(
+				 (GRect) { 
+				   .origin = { 0, bounds.size.h
+					       - BATT_SIZE
+					      }, 
+				   .size = { bounds.size.w, BATT_SIZE } 
+				 });
+  text_layer_set_text(batt_layer, "BATT %%");
+  text_layer_set_text_alignment(batt_layer, GTextAlignmentCenter);
+  text_layer_set_font(batt_layer, 
+		      fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+  layer_add_child(window_layer, text_layer_get_layer(batt_layer));
 }
 
 /**
@@ -251,6 +345,7 @@ static void window_unload(Window *window) {
   text_layer_destroy(text_layer);
   text_layer_destroy(alarm_layer);
   text_layer_destroy(clock_layer);
+  text_layer_destroy(batt_layer);
   layer_destroy(spec_layer);
 }
 
@@ -296,6 +391,10 @@ static void init(void) {
   fallWindow = FALL_WINDOW_DEFAULT;
   if (persist_exists(KEY_FALL_WINDOW))
     fallWindow = persist_read_int(KEY_FALL_WINDOW);
+
+  mutePeriod = MUTE_PERIOD_DEFAULT;
+  if (persist_exists(KEY_MUTE_PERIOD))
+    mutePeriod = persist_read_int(KEY_MUTE_PERIOD);
   
   // Create Window for display.
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Creating Window....");
@@ -307,6 +406,9 @@ static void init(void) {
   const bool animated = true;
   window_stack_push(window, animated);
 
+  // Detect button clicks
+  window_set_click_config_provider(window, click_config_provider);
+  
   // Initialise analysis of accelerometer data.
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Initialising Analysis System....");
   analysis_init();
@@ -337,6 +439,8 @@ static void deinit(void) {
   persist_write_int(KEY_FALL_THRESH_MIN,fallThreshMin);
   persist_write_int(KEY_FALL_THRESH_MAX,fallThreshMax);
   persist_write_int(KEY_FALL_WINDOW,fallWindow);
+
+  persist_write_int(KEY_MUTE_PERIOD,mutePeriod);
   
   // destroy the window
   window_destroy(window);

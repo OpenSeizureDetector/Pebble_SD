@@ -55,8 +55,12 @@
 #define FALL_THRESH_MAX_DEFAULT 800 // milli-g
 #define FALL_WINDOW_DEFAULT     1500 // milli-secs
 
+// default mute time
+#define MUTE_PERIOD_DEFAULT 300  // number of seconds to mute alarm
+
 /* Display Configuration */
-#define CLOCK_SIZE 30  // pixels.
+#define BATT_SIZE 30  // pixels.
+#define CLOCK_SIZE 37  // pixels.
 #define ALARM_SIZE 30  // pixels.
 #define SPEC_SIZE 30   // pixels
 
@@ -89,11 +93,19 @@
 #define KEY_FALL_WINDOW 23
 #define KEY_FALL_ACTIVE 24
 #define KEY_DATA_UPDATE_PERIOD 25
+#define KEY_MUTE_PERIOD 26
 
 // Values of the KEY_DATA_TYPE entry in a message
 #define DATA_TYPE_RESULTS 1   // Analysis Results
 #define DATA_TYPE_SETTINGS 2  // Settings
 #define DATA_TYPE_SPEC 3      // FFT Spectrum (or part of a spectrum)
+
+// Values for ALARM_STATE
+#define ALARM_STATE_OK 0   // no alarm
+#define ALARM_STATE_WARN 1 // Warning
+#define ALARM_STATE_ALARM 2 // Alarm
+#define ALARM_STATE_FALL 3 // Fall Detected
+#define ALARM_STATE_MUTE 4 // Alarms muted
 
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
@@ -126,6 +138,11 @@ extern int fallThreshMin; // fall detection minimum (lower) threshold (milli-g)
 extern int fallThreshMax; // fall detection maximum (upper) threshold (milli-g)
 extern int fallWindow;    // fall detection window (milli-seconds).
 extern int fallDetected;  // flag to say if fall is detected (<>0 is fall)
+
+extern int isMuted;       // flag to say if alarms are muted.
+extern int muteTime;      // time (in sec) that alarms have been muted.
+extern int mutePeriod;    // the time to mute alarms following long press of
+                          // UP button.
 
 extern int alarmState;    // 0 = OK, 1 = WARNING, 2 = ALARM, 3 = FALL
 extern int alarmCount;    // number of seconds that we have been in an alarm state.

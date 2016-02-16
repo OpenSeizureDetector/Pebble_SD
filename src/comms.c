@@ -93,6 +93,10 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
       APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting FALL_WINDOW to %d",
 	      fallWindow = (int)t->value->int16);
       break;
+    case KEY_MUTE_PERIOD:
+      APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting MUTE_PERIOD to %d",
+	      mutePeriod = (int)t->value->int16);
+      break;
     }
     // Get next pair, if any
     t = dict_read_next(iterator);
@@ -157,6 +161,7 @@ void sendSettings() {
   dict_write_uint32(iter,KEY_FALL_THRESH_MIN,(uint32_t)fallThreshMin);
   dict_write_uint32(iter,KEY_FALL_THRESH_MAX,(uint32_t)fallThreshMax);
   dict_write_uint32(iter,KEY_FALL_WINDOW,(uint32_t)fallWindow);
+  dict_write_uint32(iter,KEY_MUTE_PERIOD,(uint32_t)mutePeriod);
 
   app_message_outbox_send();
 
