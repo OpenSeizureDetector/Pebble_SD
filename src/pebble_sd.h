@@ -56,7 +56,13 @@
 #define FALL_WINDOW_DEFAULT     1500 // milli-secs
 
 // default mute time
-#define MUTE_PERIOD_DEFAULT 300  // number of seconds to mute alarm
+#define MUTE_PERIOD_DEFAULT 300  // number of seconds to mute alarm following
+                                 // long press of UP button.
+
+// default manual alarm time
+#define MAN_ALARM_PERIOD_DEFAULT 300 // number of seconds that manual alarm is
+                                     // raised following long press of DOWN
+                                     // button
 
 /* Display Configuration */
 #define BATT_SIZE 30  // pixels.
@@ -94,6 +100,7 @@
 #define KEY_FALL_ACTIVE 24
 #define KEY_DATA_UPDATE_PERIOD 25
 #define KEY_MUTE_PERIOD 26
+#define KEY_MAN_ALARM_PERIOD 27
 
 // Values of the KEY_DATA_TYPE entry in a message
 #define DATA_TYPE_RESULTS 1   // Analysis Results
@@ -105,7 +112,8 @@
 #define ALARM_STATE_WARN 1 // Warning
 #define ALARM_STATE_ALARM 2 // Alarm
 #define ALARM_STATE_FALL 3 // Fall Detected
-#define ALARM_STATE_MUTE 4 // Alarms muted
+#define ALARM_STATE_MAN_ALARM 4 // Manual Alarm
+#define ALARM_STATE_MUTE 5  // Alarm Muted
 
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
@@ -138,6 +146,10 @@ extern int fallThreshMin; // fall detection minimum (lower) threshold (milli-g)
 extern int fallThreshMax; // fall detection maximum (upper) threshold (milli-g)
 extern int fallWindow;    // fall detection window (milli-seconds).
 extern int fallDetected;  // flag to say if fall is detected (<>0 is fall)
+
+extern int isManAlarm;     // flag to say if a manual alarm has been raised.
+extern int manAlarmTime;   // time (in sec) that manual alarm has been raised
+extern int manAlarmPeriod; // time (in sec) that manual alarm is raised for
 
 extern int isMuted;       // flag to say if alarms are muted.
 extern int muteTime;      // time (in sec) that alarms have been muted.

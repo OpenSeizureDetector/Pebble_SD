@@ -47,6 +47,10 @@ int fallThreshMax = 0;  // fall detection maximum (upper) threshold (milli-g)
 int fallWindow = 0;     // fall detection window (milli-seconds).
 int fallDetected = 0;   // flag to say if fall is detected (<>0 is fall)
 
+int isManAlarm = 0;     // flag to say if a manual alarm has been raised.
+int manAlarmTime = 0;   // time (in sec) that manual alarm has been raised
+int manAlarmPeriod = 0; // time (in sec) that manual alarm is raised for
+
 int isMuted = 0;        // flag to say if alarms are muted.
 int muteTime = 0;       // time (in sec) that alarms have been muted.
 int mutePeriod = 0;     // Period for which alarms are muted (sec)
@@ -90,6 +94,29 @@ static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   static int analysisCount=0;
   static int dataUpdateCount = 0;
 
+  if (isManAlarm) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG,"Manual Alarm - manAlarmTime=%d",manAlarmTime);
+    if (manAlarmTime < manAlarmPeriod) {
+      alarmState = ALARM_STATE_MAN_ALARM;
+      text_layer_set_text(alarm_layer, "** MAN ALARM **");
+      manAlarmTime += 1;
+    } else {
+      isManAlarm = 0;
+      manAlarmTime = 0;
+    }
+  }
+  if (isMuted) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG,"Alarms Muted - muteTime=%d",muteTime);
+    if (muteTime < mutePeriod) {
+      text_layer_set_text(alarm_layer, "** MUTE **");
+      muteTime += 1;
+    } else {
+      isMuted = 0;
+      muteTime = 0;
+    }
+  }
+  
+  
   /* Only process data every ANALYSIS_PERIOD seconds */
   analysisCount++;
   if (analysisCount>=ANALYSIS_PERIOD) {
@@ -121,17 +148,18 @@ static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 	//vibes_long_pulse();
 	text_layer_set_text(alarm_layer, "** FALL **");
       }
-      if (isMuted) {
-	if (muteTime < mutePeriod) {
-	  text_layer_set_text(alarm_layer, "** MUTE **");
-	  muteTime += 1;
-	} else {
-	  isMuted = 0;
-	  muteTime = 0;
-	}
+      if (isManAlarm) {
+	alarmState = ALARM_STATE_MAN_ALARM;
+	text_layer_set_text(alarm_layer, "** MAN ALARM **");
       }
+      if (isMuted) {
+	alarmState = ALARM_STATE_MUTE;
+	text_layer_set_text(alarm_layer, "** MUTE **");
+      }
+
+
       // Send data to phone if we have an alarm condition.
-      if (alarmState != 0) {
+      if (alarmState != ALARM_STATE_OK && !isMuted) {
 	sendSdData();
       }
     }
@@ -227,7 +255,15 @@ static void up_long_click_handler(ClickRecognizerRef recognizer, void *context) 
 }
 
 static void down_long_click_handler(ClickRecognizerRef recognizer, void *context) {
-  text_layer_set_text(alarm_layer, "**Alarm**");
+  if (isManAlarm) {
+    text_layer_set_text(alarm_layer, "Alarm Cancelled");
+    isManAlarm = 0;
+    manAlarmTime = 0;
+  } else {
+    text_layer_set_text(alarm_layer, "**Man Alarm**");
+    isManAlarm = 1;
+    manAlarmTime = 0;
+  }
 }
 
 /**
@@ -395,6 +431,10 @@ static void init(void) {
   mutePeriod = MUTE_PERIOD_DEFAULT;
   if (persist_exists(KEY_MUTE_PERIOD))
     mutePeriod = persist_read_int(KEY_MUTE_PERIOD);
+
+  manAlarmPeriod = MAN_ALARM_PERIOD_DEFAULT;
+  if (persist_exists(KEY_MAN_ALARM_PERIOD))
+    manAlarmPeriod = persist_read_int(KEY_MAN_ALARM_PERIOD);
   
   // Create Window for display.
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Creating Window....");
@@ -441,6 +481,7 @@ static void deinit(void) {
   persist_write_int(KEY_FALL_WINDOW,fallWindow);
 
   persist_write_int(KEY_MUTE_PERIOD,mutePeriod);
+  persist_write_int(KEY_MAN_ALARM_PERIOD,manAlarmPeriod);
   
   // destroy the window
   window_destroy(window);
