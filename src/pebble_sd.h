@@ -112,8 +112,9 @@
 #define ALARM_STATE_WARN 1 // Warning
 #define ALARM_STATE_ALARM 2 // Alarm
 #define ALARM_STATE_FALL 3 // Fall Detected
-#define ALARM_STATE_MAN_ALARM 4 // Manual Alarm
-#define ALARM_STATE_MUTE 5  // Alarm Muted
+#define ALARM_STATE_FAULT 4 // System Fault detected
+#define ALARM_STATE_MAN_ALARM 5 // Manual Alarm
+#define ALARM_STATE_MUTE 6  // Alarm Muted
 
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)

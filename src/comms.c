@@ -44,6 +44,10 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
       APP_LOG(APP_LOG_LEVEL_INFO, "***********Phone Requesting Settings");
       sendSettings();
       break;
+    case KEY_DATA_TYPE:
+      APP_LOG(APP_LOG_LEVEL_INFO, "***********Phone Requesting Data");
+      sendSdData();
+      break;
     case KEY_SET_SETTINGS:
       APP_LOG(APP_LOG_LEVEL_INFO, "***********Phone Setting Settings");
       // We don't actually do anything here - the following sections

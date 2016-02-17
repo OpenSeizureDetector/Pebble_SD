@@ -91,8 +91,9 @@ static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   static char s_time_buffer[16];
   static char s_alarm_buffer[64];
   static char s_buffer[256];
-  static int analysisCount=0;
+  //static int analysisCount=0;
   static int dataUpdateCount = 0;
+  static int lastAlarmState = 0;
 
   if (isManAlarm) {
     APP_LOG(APP_LOG_LEVEL_DEBUG,"Manual Alarm - manAlarmTime=%d",manAlarmTime);
@@ -117,9 +118,9 @@ static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   }
   
   
-  /* Only process data every ANALYSIS_PERIOD seconds */
-  analysisCount++;
-  if (analysisCount>=ANALYSIS_PERIOD) {
+  ///* Only process data every ANALYSIS_PERIOD seconds */
+  //analysisCount++;
+  //if (analysisCount>=ANALYSIS_PERIOD) {
     // Do FFT analysis
     if (accDataFull) {
       do_analysis();
@@ -159,13 +160,16 @@ static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 
 
       // Send data to phone if we have an alarm condition.
-      if (alarmState != ALARM_STATE_OK && !isMuted) {
+      // or if alarm state has changed from last time.
+      if ((alarmState != ALARM_STATE_OK && !isMuted) ||
+	  (alarmState != lastAlarmState)) {
 	sendSdData();
       }
+      lastAlarmState = alarmState;
     }
     // Re-set counter.
-    analysisCount = 0;
-  }
+    //analysisCount = 0;
+    //}
 
   // See if it is time to send data to the phone.
   dataUpdateCount++;
