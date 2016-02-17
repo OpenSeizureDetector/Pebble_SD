@@ -96,7 +96,8 @@ static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   static int lastAlarmState = 0;
 
   if (isManAlarm) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG,"Manual Alarm - manAlarmTime=%d",manAlarmTime);
+    APP_LOG(APP_LOG_LEVEL_DEBUG,"Manual Alarm - manAlarmTime=%d, manAlarmPeriod=%d",
+	    manAlarmTime,manAlarmPeriod);
     if (manAlarmTime < manAlarmPeriod) {
       alarmState = ALARM_STATE_MAN_ALARM;
       text_layer_set_text(alarm_layer, "** MAN ALARM **");
@@ -239,7 +240,10 @@ static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
  * Called when down button is first pressed - just displays message for user.
  */
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
-  text_layer_set_text(alarm_layer, "Hold to Alarm");
+  if (isManAlarm)
+    text_layer_set_text(alarm_layer, "Hold to Cancel Alarm");
+  else
+    text_layer_set_text(alarm_layer, "Hold to Alarm");
 }
 
 /**
