@@ -34,6 +34,7 @@ int sampleFreq;      // Sampling frequency in Hz (must be one of 10,25,50 or 100
 int samplePeriod;    // Sample period in seconds
 int nSamp;           // number of samples in sampling period
                      //  (rounded up to a power of 2)
+int fftBits;         // size of fft data array (nSamp = 2^(fftBits))
 int dataUpdatePeriod; // number of seconds between sending data to the phone.
 int alarmFreqMin;    // Bin number of lower boundary of region of interest
 int alarmFreqMax;    // Bin number of higher boundary of region of interest
@@ -222,7 +223,10 @@ void draw_spec(Layer *sl, GContext *ctx) {
   for (i=0;i<bounds.size.w-1;i++) {
     p0 = GPoint(i,bounds.size.h-1);
     //h = bounds.size.h*accData[i]/2000;
-    h = bounds.size.h*getAmpl(i)/1000.;
+    if (i<=nSamp/2) 
+      h = bounds.size.h*getAmpl(i)/1000.;
+    else
+      h = bounds.size.h;
     p1 = GPoint(i,bounds.size.h - h);
     graphics_draw_line(ctx,p0,p1);
   }
@@ -407,20 +411,20 @@ static void init(void) {
   APP_LOG(APP_LOG_LEVEL_DEBUG,"init() - Loading persistent storage variables...");
   // Load data from persistent storage into global variables.
   samplePeriod = SAMPLE_PERIOD_DEFAULT;
-  if (persist_exists(KEY_SAMPLE_PERIOD))
-    samplePeriod = persist_read_int(KEY_SAMPLE_PERIOD);
+  //if (persist_exists(KEY_SAMPLE_PERIOD))
+  //  samplePeriod = persist_read_int(KEY_SAMPLE_PERIOD);
   sampleFreq = SAMPLE_FREQ_DEFAULT;
-  if (persist_exists(KEY_SAMPLE_FREQ))
-    sampleFreq = persist_read_int(KEY_SAMPLE_FREQ);
+  //if (persist_exists(KEY_SAMPLE_FREQ))
+  //  sampleFreq = persist_read_int(KEY_SAMPLE_FREQ);
   dataUpdatePeriod = DATA_UPDATE_PERIOD_DEFAULT;
-  if (persist_exists(KEY_DATA_UPDATE_PERIOD))
-    dataUpdatePeriod = persist_read_int(KEY_DATA_UPDATE_PERIOD);
+  //if (persist_exists(KEY_DATA_UPDATE_PERIOD))
+  //  dataUpdatePeriod = persist_read_int(KEY_DATA_UPDATE_PERIOD);
   alarmFreqMin = ALARM_FREQ_MIN_DEFAULT;
-  if (persist_exists(KEY_ALARM_FREQ_MIN))
-    alarmFreqMin = persist_read_int(KEY_ALARM_FREQ_MIN);
+  //if (persist_exists(KEY_ALARM_FREQ_MIN))
+  //  alarmFreqMin = persist_read_int(KEY_ALARM_FREQ_MIN);
   alarmFreqMax = ALARM_FREQ_MAX_DEFAULT;
-  if (persist_exists(KEY_ALARM_FREQ_MAX))
-    alarmFreqMax = persist_read_int(KEY_ALARM_FREQ_MAX);
+  //if (persist_exists(KEY_ALARM_FREQ_MAX))
+  //  alarmFreqMax = persist_read_int(KEY_ALARM_FREQ_MAX);
   warnTime = WARN_TIME_DEFAULT;
   if (persist_exists(KEY_WARN_TIME))
     warnTime = persist_read_int(KEY_WARN_TIME);
@@ -480,9 +484,8 @@ static void init(void) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "i=%d  ns=%d nsInit = %d",
 	    i,ns,nsInit);
     if (ns >= nsInit) {
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "i=%d ns=%d, nsInit = %d",
-	      i,ns,nsInit);
       nSamp = ns;
+      fftBits = i;
       break;
     }
   }

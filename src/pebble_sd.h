@@ -27,22 +27,18 @@
 
 
 /* ANALYSIS CONFIGURATION */
-#define ANALYSIS_PERIOD 5  // number of seconds between fft analysis.
-#define FFT_BITS 9        // 'bits' parameter to fft_forward.
-#define SAMP_FREQ 100    // Sample Frequency in Hz
-//#define SAMP_FREQ_STR ACCEL_SAMPLING_100HZ  // String to pass to sampling system.
-#define NSAMP_MAX 512       // maximum number of samples of accelerometer
-                            // data to collect (used to size arrays).
-
 
 // default values of seizure detector settings
 #define SAMPLE_PERIOD_DEFAULT 5  // sec
-#define SAMPLE_FREQ_DEFAULT 25  // Hz
+#define SAMPLE_FREQ_DEFAULT 100  // Hz
+#define NSAMP_MAX 512       // maximum number of samples of accelerometer
+                            // data to collect (used to size arrays).
+
 #define DATA_UPDATE_PERIOD_DEFAULT 20 // number of seconds between sending
                             //data to phone
                             // note data is sent instantaneously if an alarm
                             // condition is detected.
-#define ALARM_FREQ_MIN_DEFAULT 5  // Hz
+#define ALARM_FREQ_MIN_DEFAULT 3  // Hz
 #define ALARM_FREQ_MAX_DEFAULT 10 // Hz
 #define WARN_TIME_DEFAULT      5 // sec
 #define ALARM_TIME_DEFAULT     10 // sec
@@ -129,6 +125,7 @@ extern int sampleFreq;      // sampling frequency in Hz
                             //    (must be one of 10,25,50 or 100)
 extern int nSamp;           // number of samples in sampling period
                             //    (rounded up to a power of 2)
+extern int fftBits;          // Size of fft data array - nSamp = 2^(fftBits)
 extern int dataUpdatePeriod; // period (in sec) between sending data to the phone
 extern int alarmFreqMin;    // Minimum frequency (in Hz) for analysis region of interest.
 extern int alarmFreqMax;    // Maximum frequency (in Hz) for analysis region of interest.

@@ -72,7 +72,7 @@ int alarm_check() {
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Alarm Check nMin=%d, nMax=%d",nMin,nMax);
 
   if (roiPower>alarmThresh && roiRatio>alarmRatioThresh) {
-    alarmCount+=ANALYSIS_PERIOD;
+    alarmCount+=samplePeriod;
     if (alarmCount>alarmTime) {
       alarmState = 2;
     } else if (alarmCount>warnTime) {
@@ -157,13 +157,11 @@ void check_fall() {
  */
 void do_analysis() {
   int i;
-
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis");
   // Calculate the frequency resolution of the output spectrum.
   // Stored as an integer which is 1000 x the frequency resolution in Hz.
   freqRes = (int)(1000*sampleFreq/nSamp);
   APP_LOG(APP_LOG_LEVEL_DEBUG,"freqRes=%d",freqRes);
-
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis");
   // Set the frequency bounds for the analysis in fft output bin numbers.
   nMin = 1000*alarmFreqMin/freqRes;
   nMax = 1000*alarmFreqMax/freqRes;
@@ -177,7 +175,7 @@ void do_analysis() {
   }
 
   // Do the FFT conversion from time to frequency domain.
-  fft_fft(fftdata,FFT_BITS);
+  fft_fft(fftdata,fftBits);
 
   // Look for maximm amplitude, and location of maximum.
   // Ignore position zero though (DC component)
@@ -229,8 +227,18 @@ void do_analysis() {
 }
 
 void analysis_init() {
+  // Zero all data arrays:
+  for (int i = 0; i<NSAMP_MAX; i++) {
+    accData[i] = 0;
+    fftdata[i].r = 0;
+    fftdata[i].i = 0;
+  }
+  for (int i = 0; i<NSAMP_MAX/2; i++) {
+    fftResults[i] = 0;
+  }
+
   /* Subscribe to acceleration data service */
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"Analysis Init:  Subcribing to acceleration data");
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"Analysis Init:  Subcribing to acceleration data at frequency %d Hz",sampleFreq);
   accel_data_service_subscribe(25,accel_handler);
   // Choose update rate
   accel_service_set_sampling_rate(sampleFreq);
