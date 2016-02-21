@@ -38,6 +38,10 @@
 // default values of seizure detector settings
 #define SAMPLE_PERIOD_DEFAULT 5  // sec
 #define SAMPLE_FREQ_DEFAULT 25  // Hz
+#define DATA_UPDATE_PERIOD_DEFAULT 20 // number of seconds between sending
+                            //data to phone
+                            // note data is sent instantaneously if an alarm
+                            // condition is detected.
 #define ALARM_FREQ_MIN_DEFAULT 5  // Hz
 #define ALARM_FREQ_MAX_DEFAULT 10 // Hz
 #define WARN_TIME_DEFAULT      5 // sec
@@ -55,8 +59,18 @@
 #define FALL_THRESH_MAX_DEFAULT 800 // milli-g
 #define FALL_WINDOW_DEFAULT     1500 // milli-secs
 
+// default mute time
+#define MUTE_PERIOD_DEFAULT 300  // number of seconds to mute alarm following
+                                 // long press of UP button.
+
+// default manual alarm time
+#define MAN_ALARM_PERIOD_DEFAULT 300 // number of seconds that manual alarm is
+                                     // raised following long press of DOWN
+                                     // button
+
 /* Display Configuration */
-#define CLOCK_SIZE 30  // pixels.
+#define BATT_SIZE 30  // pixels.
+#define CLOCK_SIZE 37  // pixels.
 #define ALARM_SIZE 30  // pixels.
 #define SPEC_SIZE 30   // pixels
 
@@ -90,11 +104,23 @@
 #define KEY_FALL_ACTIVE 24
 #define KEY_SAMPLE_FREQ 25
 #define KEY_SAMPLE_PERIOD 26
+#define KEY_DATA_UPDATE_PERIOD 27
+#define KEY_MUTE_PERIOD 28
+#define KEY_MAN_ALARM_PERIOD 29
 
 // Values of the KEY_DATA_TYPE entry in a message
 #define DATA_TYPE_RESULTS 1   // Analysis Results
 #define DATA_TYPE_SETTINGS 2  // Settings
 #define DATA_TYPE_SPEC 3      // FFT Spectrum (or part of a spectrum)
+
+// Values for ALARM_STATE
+#define ALARM_STATE_OK 0   // no alarm
+#define ALARM_STATE_WARN 1 // Warning
+#define ALARM_STATE_ALARM 2 // Alarm
+#define ALARM_STATE_FALL 3 // Fall Detected
+#define ALARM_STATE_FAULT 4 // System Fault detected
+#define ALARM_STATE_MAN_ALARM 5 // Manual Alarm
+#define ALARM_STATE_MUTE 6  // Alarm Muted
 
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
@@ -103,6 +129,7 @@ extern int sampleFreq;      // sampling frequency in Hz
                             //    (must be one of 10,25,50 or 100)
 extern int nSamp;           // number of samples in sampling period
                             //    (rounded up to a power of 2)
+extern int dataUpdatePeriod; // period (in sec) between sending data to the phone
 extern int alarmFreqMin;    // Minimum frequency (in Hz) for analysis region of interest.
 extern int alarmFreqMax;    // Maximum frequency (in Hz) for analysis region of interest.
 extern int nMin, nMax;      // Bin number of region of interest boundaries.
@@ -131,6 +158,15 @@ extern int fallThreshMin; // fall detection minimum (lower) threshold (milli-g)
 extern int fallThreshMax; // fall detection maximum (upper) threshold (milli-g)
 extern int fallWindow;    // fall detection window (milli-seconds).
 extern int fallDetected;  // flag to say if fall is detected (<>0 is fall)
+
+extern int isManAlarm;     // flag to say if a manual alarm has been raised.
+extern int manAlarmTime;   // time (in sec) that manual alarm has been raised
+extern int manAlarmPeriod; // time (in sec) that manual alarm is raised for
+
+extern int isMuted;       // flag to say if alarms are muted.
+extern int muteTime;      // time (in sec) that alarms have been muted.
+extern int mutePeriod;    // the time to mute alarms following long press of
+                          // UP button.
 
 extern int alarmState;    // 0 = OK, 1 = WARNING, 2 = ALARM, 3 = FALL
 extern int alarmCount;    // number of seconds that we have been in an alarm state.

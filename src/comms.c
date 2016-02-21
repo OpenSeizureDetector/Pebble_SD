@@ -2,7 +2,7 @@
   Pebble_sd - a simple accelerometer based seizure detector that runs on a
   Pebble smart watch (http://getpebble.com).
 
-  See http://openseizuredetector.org for more information.
+  See http://openseizuredetector.org.uk for more information.
 
   Copyright Graham Jones, 2015, 2016.
 
@@ -44,6 +44,10 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
       APP_LOG(APP_LOG_LEVEL_INFO, "***********Phone Requesting Settings");
       sendSettings();
       break;
+    case KEY_DATA_TYPE:
+      APP_LOG(APP_LOG_LEVEL_INFO, "***********Phone Requesting Data");
+      sendSdData();
+      break;
     case KEY_SET_SETTINGS:
       APP_LOG(APP_LOG_LEVEL_INFO, "***********Phone Setting Settings");
       // We don't actually do anything here - the following sections
@@ -56,6 +60,10 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
     case KEY_SAMPLE_FREQ:
       APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting SAMPLE_FREQ to %d",
 	      sampleFreq = (int)t->value->int16);
+      break;
+    case KEY_DATA_UPDATE_PERIOD:
+      APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting DATA_UPDATE_PERIOD to %d",
+	      dataUpdatePeriod = (int)t->value->int16);
       break;
     case KEY_ALARM_FREQ_MIN:
       APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting ALARM_FREQ_MIN to %d",
@@ -96,6 +104,14 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
     case KEY_FALL_WINDOW:
       APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting FALL_WINDOW to %d",
 	      fallWindow = (int)t->value->int16);
+      break;
+    case KEY_MUTE_PERIOD:
+      APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting MUTE_PERIOD to %d",
+	      mutePeriod = (int)t->value->int16);
+      break;
+    case KEY_MAN_ALARM_PERIOD:
+      APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting MAN_ALARM_PERIOD to %d",
+	      manAlarmPeriod = (int)t->value->int16);
       break;
     }
     // Get next pair, if any
@@ -146,6 +162,9 @@ void sendSettings() {
   dict_write_uint8(iter,KEY_DATA_TYPE,(uint8_t)DATA_TYPE_SETTINGS);
   dict_write_uint8(iter,KEY_SETTINGS,(uint8_t)1);
   // then the actual settings
+  dict_write_uint32(iter,KEY_SAMPLE_PERIOD,(uint32_t)samplePeriod);
+  dict_write_uint32(iter,KEY_SAMPLE_FREQ,(uint32_t)sampleFreq);
+  dict_write_uint32(iter,KEY_DATA_UPDATE_PERIOD,(uint32_t)dataUpdatePeriod);
   dict_write_uint32(iter,KEY_ALARM_FREQ_MIN,(uint32_t)alarmFreqMin);
   dict_write_uint32(iter,KEY_ALARM_FREQ_MAX,(uint32_t)alarmFreqMax);
   dict_write_uint32(iter,KEY_NMIN,(uint32_t)nMin);
@@ -160,6 +179,8 @@ void sendSettings() {
   dict_write_uint32(iter,KEY_FALL_THRESH_MIN,(uint32_t)fallThreshMin);
   dict_write_uint32(iter,KEY_FALL_THRESH_MAX,(uint32_t)fallThreshMax);
   dict_write_uint32(iter,KEY_FALL_WINDOW,(uint32_t)fallWindow);
+  dict_write_uint32(iter,KEY_MUTE_PERIOD,(uint32_t)mutePeriod);
+  dict_write_uint32(iter,KEY_MAN_ALARM_PERIOD,(uint32_t)manAlarmPeriod);
 
   app_message_outbox_send();
 

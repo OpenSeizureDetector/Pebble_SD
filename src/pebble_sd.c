@@ -2,7 +2,7 @@
   Pebble_sd - a simple accelerometer based seizure detector that runs on a
   Pebble smart watch (http://getpebble.com).
 
-  See http://openseizuredetector.org for more information.
+  See http://openseizuredetector.org.uk for more information.
 
   Copyright Graham Jones, 2015, 2016
 
@@ -25,6 +25,8 @@
 #include <pebble.h>
 
 #include "pebble_sd.h"
+#include "pebble_process_info.h"
+extern const PebbleProcessInfo __pbl_app_info;
 
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
@@ -32,6 +34,7 @@ int sampleFreq;      // Sampling frequency in Hz (must be one of 10,25,50 or 100
 int samplePeriod;    // Sample period in seconds
 int nSamp;           // number of samples in sampling period
                      //  (rounded up to a power of 2)
+int dataUpdatePeriod; // number of seconds between sending data to the phone.
 int alarmFreqMin;    // Bin number of lower boundary of region of interest
 int alarmFreqMax;    // Bin number of higher boundary of region of interest
 int warnTime;        // number of seconds above threshold to raise warning
@@ -48,11 +51,19 @@ int fallThreshMax = 0;  // fall detection maximum (upper) threshold (milli-g)
 int fallWindow = 0;     // fall detection window (milli-seconds).
 int fallDetected = 0;   // flag to say if fall is detected (<>0 is fall)
 
+int isManAlarm = 0;     // flag to say if a manual alarm has been raised.
+int manAlarmTime = 0;   // time (in sec) that manual alarm has been raised
+int manAlarmPeriod = 0; // time (in sec) that manual alarm is raised for
+
+int isMuted = 0;        // flag to say if alarms are muted.
+int muteTime = 0;       // time (in sec) that alarms have been muted.
+int mutePeriod = 0;     // Period for which alarms are muted (sec)
 
 Window *window;
 TextLayer *text_layer;
 TextLayer *alarm_layer;
 TextLayer *clock_layer;
+TextLayer *batt_layer;
 Layer *spec_layer;
 AccelData latestAccelData;  // Latest accelerometer readings received.
 int maxVal = 0;       // Peak amplitude in spectrum.
@@ -76,16 +87,45 @@ int alarmCount = 0;    // number of seconds that we have been in an alarm state.
 /************************************************************************
  * clock_tick_handler() - Analyse data and update display.
  * Updates the text layer clock_layer to show current time.
- * This function is the handler for tick events.*/
+ * This function is the handler for tick events and is called every 
+ * second.
+ */
 static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+  static char s_batt_buffer[16];
   static char s_time_buffer[16];
   static char s_alarm_buffer[64];
   static char s_buffer[256];
-  static int analysisCount=0;
+  //static int analysisCount=0;
+  static int dataUpdateCount = 0;
+  static int lastAlarmState = 0;
 
-  /* Only process data every ANALYSIS_PERIOD seconds */
-  analysisCount++;
-  if (analysisCount>=ANALYSIS_PERIOD) {
+  if (isManAlarm) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG,"Manual Alarm - manAlarmTime=%d, manAlarmPeriod=%d",
+	    manAlarmTime,manAlarmPeriod);
+    if (manAlarmTime < manAlarmPeriod) {
+      alarmState = ALARM_STATE_MAN_ALARM;
+      text_layer_set_text(alarm_layer, "** MAN ALARM **");
+      manAlarmTime += 1;
+    } else {
+      isManAlarm = 0;
+      manAlarmTime = 0;
+    }
+  }
+  if (isMuted) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG,"Alarms Muted - muteTime=%d",muteTime);
+    if (muteTime < mutePeriod) {
+      text_layer_set_text(alarm_layer, "** MUTE **");
+      muteTime += 1;
+    } else {
+      isMuted = 0;
+      muteTime = 0;
+    }
+  }
+  
+  
+  ///* Only process data every ANALYSIS_PERIOD seconds */
+  //analysisCount++;
+  //if (analysisCount>=ANALYSIS_PERIOD) {
     // Do FFT analysis
     if (accDataFull) {
       do_analysis();
@@ -95,52 +135,67 @@ static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 
       // If no seizure detected, modify alarmState to reflect potential fall
       // detection
-      if ((alarmState == 0) && (fallDetected==1)) alarmState = 3;
+      if ((alarmState == ALARM_STATE_OK) && (fallDetected==1))
+	alarmState = ALARM_STATE_FALL;
 
       //  Display alarm message on screen.
-      if (alarmState == 0) {
+      if (alarmState == ALARM_STATE_OK) {
 	text_layer_set_text(alarm_layer, "OK");
       }
-      if (alarmState == 1) {
+      if (alarmState == ALARM_STATE_WARN) {
 	//vibes_short_pulse();
 	text_layer_set_text(alarm_layer, "WARNING");
       }
-      if (alarmState == 2) {
+      if (alarmState == ALARM_STATE_ALARM) {
 	//vibes_long_pulse();
 	text_layer_set_text(alarm_layer, "** ALARM **");
       }
-      if (alarmState == 3) {
+      if (alarmState == ALARM_STATE_FALL) {
 	//vibes_long_pulse();
 	text_layer_set_text(alarm_layer, "** FALL **");
       }
-      // Send data to phone
-      sendSdData();
+      if (isManAlarm) {
+	alarmState = ALARM_STATE_MAN_ALARM;
+	text_layer_set_text(alarm_layer, "** MAN ALARM **");
+      }
+      if (isMuted) {
+	alarmState = ALARM_STATE_MUTE;
+	text_layer_set_text(alarm_layer, "** MUTE **");
+      }
+
+
+      // Send data to phone if we have an alarm condition.
+      // or if alarm state has changed from last time.
+      if ((alarmState != ALARM_STATE_OK && !isMuted) ||
+	  (alarmState != lastAlarmState)) {
+	sendSdData();
+      }
+      lastAlarmState = alarmState;
     }
     // Re-set counter.
-    analysisCount = 0;
+    //analysisCount = 0;
+    //}
+
+  // See if it is time to send data to the phone.
+  dataUpdateCount++;
+  if (dataUpdateCount>=dataUpdatePeriod) {
+    sendSdData();
+    dataUpdateCount = 0;
   }
  
-
-  // Update data display.
-  //snprintf(s_buffer,sizeof(s_buffer),
-  //	   "max=%d, P=%ld\n%d Hz",
-  //	   /*latestAccelData.x, latestAccelData.y, latestAccelData.z,*/
-  //	   maxVal,specPower,maxFreq
-  //	   );
+  // Update the display
   text_layer_set_text(text_layer, "OpenSeizureDetector");
-
-  // and update clock display.
   if (clock_is_24h_style()) {
     strftime(s_time_buffer, sizeof(s_time_buffer), "%H:%M:%S", tick_time);
   } else {
     strftime(s_time_buffer, sizeof(s_time_buffer), "%I:%M:%S", tick_time);
   }
-  BatteryChargeState charge_state = battery_state_service_peek();
-  snprintf(s_time_buffer,sizeof(s_time_buffer),
-	   "%s %d%%", 
-	   s_time_buffer,
-	   charge_state.charge_percent);
   text_layer_set_text(clock_layer, s_time_buffer);
+  BatteryChargeState charge_state = battery_state_service_peek();
+  snprintf(s_batt_buffer,sizeof(s_batt_buffer),
+  	   "%d%%", 
+  	   charge_state.charge_percent);
+  text_layer_set_text(batt_layer, s_batt_buffer);
 }
 
 
@@ -174,12 +229,82 @@ void draw_spec(Layer *sl, GContext *ctx) {
 
 }
 
+
+/**
+ * Called when up button is first pressed - just displays message for user.
+ */
+static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
+  if (isMuted) 
+    text_layer_set_text(alarm_layer, "Hold to Cancel Mute");
+  else
+    text_layer_set_text(alarm_layer, "Hold to Mute");    
+}
+
+/**
+ * Called when down button is first pressed - just displays message for user.
+ */
+static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
+  if (isManAlarm)
+    text_layer_set_text(alarm_layer, "Hold to Cancel Alarm");
+  else
+    text_layer_set_text(alarm_layer, "Hold to Alarm");
+}
+
+/**
+ * Called following long click of up button - mutes alarms to prevent
+ * alarm initiation
+ */
+static void up_long_click_handler(ClickRecognizerRef recognizer, void *context) {
+  if (isMuted) {
+    text_layer_set_text(alarm_layer, "Mute Cancelled");
+    isMuted = 0;
+    muteTime = 0;
+  } else {
+    text_layer_set_text(alarm_layer, "**Mute**");
+    isMuted = 1;
+    muteTime = 0;
+  }
+}
+
+static void down_long_click_handler(ClickRecognizerRef recognizer, void *context) {
+  if (isManAlarm) {
+    text_layer_set_text(alarm_layer, "Alarm Cancelled");
+    isManAlarm = 0;
+    manAlarmTime = 0;
+  } else {
+    text_layer_set_text(alarm_layer, "**Man Alarm**");
+    isManAlarm = 1;
+    manAlarmTime = 0;
+  }
+}
+
+/**
+ *  Register callbacks for button clicks.
+ */
+static void click_config_provider(void *context) {
+  // Register the ClickHandlers
+  window_raw_click_subscribe(BUTTON_ID_UP,
+			     up_click_handler,
+			     NULL,NULL);
+  window_raw_click_subscribe(BUTTON_ID_DOWN,
+			     down_click_handler,
+			     NULL,NULL);
+  window_long_click_subscribe(BUTTON_ID_UP, 1000,
+			      up_long_click_handler,
+			      NULL);
+  window_long_click_subscribe(BUTTON_ID_DOWN, 1000,
+			      down_long_click_handler,
+			      NULL);
+}
+
+
 /**********************************************************************/
 
 /**
  * window_load(): Initialise main window.
  */
 static void window_load(Window *window) {
+  static char verStr[16];
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
@@ -188,11 +313,12 @@ static void window_load(Window *window) {
 				   .origin = { 0, 0 }, 
 				   .size = { bounds.size.w, 
 					     bounds.size.h
+					     -BATT_SIZE
 					     -CLOCK_SIZE
 					     -ALARM_SIZE
 					     -SPEC_SIZE } 
 				 });
-  text_layer_set_text(text_layer, "Press a button");
+  text_layer_set_text(text_layer, "OpenSeizureDetector");
   text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
   text_layer_set_font(text_layer, 
 		      fonts_get_system_font(FONT_KEY_GOTHIC_24));
@@ -202,13 +328,17 @@ static void window_load(Window *window) {
   alarm_layer = text_layer_create(
 				 (GRect) { 
 				   .origin = { 0, bounds.size.h 
+					       - BATT_SIZE
 					       - CLOCK_SIZE
 					       - ALARM_SIZE
 					       - SPEC_SIZE
 				   }, 
 				   .size = { bounds.size.w, ALARM_SIZE } 
 				 });
-  text_layer_set_text(alarm_layer, "ALARM");
+  snprintf(verStr,sizeof(verStr),"V%d.%d",
+	   __pbl_app_info.process_version.major,
+	   __pbl_app_info.process_version.minor);
+  text_layer_set_text(alarm_layer,verStr);
   text_layer_set_text_alignment(alarm_layer, GTextAlignmentCenter);
   text_layer_set_font(alarm_layer, 
 		      fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
@@ -218,7 +348,10 @@ static void window_load(Window *window) {
   /* Create layer for spectrum display */
   spec_layer = layer_create(
 				 (GRect) { 
-				   .origin = { 0, bounds.size.h - CLOCK_SIZE - SPEC_SIZE }, 
+				   .origin = { 0, bounds.size.h
+					       - BATT_SIZE
+					       - CLOCK_SIZE
+					       - SPEC_SIZE }, 
 				   .size = { bounds.size.w, SPEC_SIZE } 
 				 });
   layer_set_update_proc(spec_layer,draw_spec);
@@ -227,7 +360,9 @@ static void window_load(Window *window) {
   /* Create text layer for clock display */
   clock_layer = text_layer_create(
 				 (GRect) { 
-				   .origin = { 0, bounds.size.h - CLOCK_SIZE }, 
+				   .origin = { 0, bounds.size.h
+					       - BATT_SIZE
+					       - CLOCK_SIZE }, 
 				   .size = { bounds.size.w, CLOCK_SIZE } 
 				 });
   text_layer_set_text(clock_layer, "CLOCK");
@@ -235,6 +370,20 @@ static void window_load(Window *window) {
   text_layer_set_font(clock_layer, 
 		      fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
   layer_add_child(window_layer, text_layer_get_layer(clock_layer));
+
+  /* Create text layer for battery display */
+  batt_layer = text_layer_create(
+				 (GRect) { 
+				   .origin = { 0, bounds.size.h
+					       - BATT_SIZE
+					      }, 
+				   .size = { bounds.size.w, BATT_SIZE } 
+				 });
+  text_layer_set_text(batt_layer, "BATT %%");
+  text_layer_set_text_alignment(batt_layer, GTextAlignmentCenter);
+  text_layer_set_font(batt_layer, 
+		      fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+  layer_add_child(window_layer, text_layer_get_layer(batt_layer));
 }
 
 /**
@@ -244,6 +393,7 @@ static void window_unload(Window *window) {
   text_layer_destroy(text_layer);
   text_layer_destroy(alarm_layer);
   text_layer_destroy(clock_layer);
+  text_layer_destroy(batt_layer);
   layer_destroy(spec_layer);
 }
 
@@ -262,6 +412,9 @@ static void init(void) {
   sampleFreq = SAMPLE_FREQ_DEFAULT;
   if (persist_exists(KEY_SAMPLE_FREQ))
     sampleFreq = persist_read_int(KEY_SAMPLE_FREQ);
+  dataUpdatePeriod = DATA_UPDATE_PERIOD_DEFAULT;
+  if (persist_exists(KEY_DATA_UPDATE_PERIOD))
+    dataUpdatePeriod = persist_read_int(KEY_DATA_UPDATE_PERIOD);
   alarmFreqMin = ALARM_FREQ_MIN_DEFAULT;
   if (persist_exists(KEY_ALARM_FREQ_MIN))
     alarmFreqMin = persist_read_int(KEY_ALARM_FREQ_MIN);
@@ -294,6 +447,14 @@ static void init(void) {
   fallWindow = FALL_WINDOW_DEFAULT;
   if (persist_exists(KEY_FALL_WINDOW))
     fallWindow = persist_read_int(KEY_FALL_WINDOW);
+
+  mutePeriod = MUTE_PERIOD_DEFAULT;
+  if (persist_exists(KEY_MUTE_PERIOD))
+    mutePeriod = persist_read_int(KEY_MUTE_PERIOD);
+
+  manAlarmPeriod = MAN_ALARM_PERIOD_DEFAULT;
+  if (persist_exists(KEY_MAN_ALARM_PERIOD))
+    manAlarmPeriod = persist_read_int(KEY_MAN_ALARM_PERIOD);
   
   // Create Window for display.
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Creating Window....");
@@ -305,6 +466,9 @@ static void init(void) {
   const bool animated = true;
   window_stack_push(window, animated);
 
+  // Detect button clicks
+  window_set_click_config_provider(window, click_config_provider);
+  
   // Initialise analysis of accelerometer data.
   // get number of samples per period, and round up to a power of 2
   nsInit = samplePeriod * sampleFreq;
@@ -332,10 +496,9 @@ static void init(void) {
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Initialising Communications System....");
   comms_init();
 
-  /* Subscribe to TickTimerService */
+  /* Subscribe to TickTimerService for analysis */
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Intialising Clock Timer....");
   tick_timer_service_subscribe(SECOND_UNIT, clock_tick_handler);
-
 }
 
 /**
@@ -345,6 +508,7 @@ static void deinit(void) {
   // Save settings to persistent storage
   persist_write_int(KEY_SAMPLE_PERIOD,samplePeriod);
   persist_write_int(KEY_SAMPLE_FREQ,sampleFreq);
+  persist_write_int(KEY_DATA_UPDATE_PERIOD,dataUpdatePeriod);
   persist_write_int(KEY_ALARM_FREQ_MIN,alarmFreqMin);
   persist_write_int(KEY_ALARM_FREQ_MAX,alarmFreqMax);
   persist_write_int(KEY_WARN_TIME,warnTime);
@@ -356,6 +520,9 @@ static void deinit(void) {
   persist_write_int(KEY_FALL_THRESH_MIN,fallThreshMin);
   persist_write_int(KEY_FALL_THRESH_MAX,fallThreshMax);
   persist_write_int(KEY_FALL_WINDOW,fallWindow);
+
+  persist_write_int(KEY_MUTE_PERIOD,mutePeriod);
+  persist_write_int(KEY_MAN_ALARM_PERIOD,manAlarmPeriod);
   
   // destroy the window
   window_destroy(window);
