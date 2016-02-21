@@ -4,7 +4,7 @@
 
   See http://openseizuredetector.org for more information.
 
-  Copyright Graham Jones, 2015.
+  Copyright Graham Jones, 2015,2016.
 
   This file is part of pebble_sd.
 
@@ -27,13 +27,17 @@
 
 
 /* ANALYSIS CONFIGURATION */
-#define SAMP_FREQ 100    // Sample Frequency in Hz
-#define SAMP_FREQ_STR ACCEL_SAMPLING_100HZ  // String to pass to sampling system.
-#define NSAMP 512       // number of samples of accelerometer data to collect.
+#define ANALYSIS_PERIOD 5  // number of seconds between fft analysis.
 #define FFT_BITS 9        // 'bits' parameter to fft_forward.
-#define ANALYSIS_PERIOD 3  // number of seconds between fft analysis and screen updates.
+#define SAMP_FREQ 100    // Sample Frequency in Hz
+//#define SAMP_FREQ_STR ACCEL_SAMPLING_100HZ  // String to pass to sampling system.
+#define NSAMP_MAX 512       // maximum number of samples of accelerometer
+                            // data to collect (used to size arrays).
+
 
 // default values of seizure detector settings
+#define SAMPLE_PERIOD_DEFAULT 5  // sec
+#define SAMPLE_FREQ_DEFAULT 25  // Hz
 #define ALARM_FREQ_MIN_DEFAULT 5  // Hz
 #define ALARM_FREQ_MAX_DEFAULT 10 // Hz
 #define WARN_TIME_DEFAULT      5 // sec
@@ -84,6 +88,8 @@
 #define KEY_FALL_THRESH_MAX 22
 #define KEY_FALL_WINDOW 23
 #define KEY_FALL_ACTIVE 24
+#define KEY_SAMPLE_FREQ 25
+#define KEY_SAMPLE_PERIOD 26
 
 // Values of the KEY_DATA_TYPE entry in a message
 #define DATA_TYPE_RESULTS 1   // Analysis Results
@@ -92,6 +98,11 @@
 
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
+extern int samplePeriod;    // sample period in seconds.
+extern int sampleFreq;      // sampling frequency in Hz
+                            //    (must be one of 10,25,50 or 100)
+extern int nSamp;           // number of samples in sampling period
+                            //    (rounded up to a power of 2)
 extern int alarmFreqMin;    // Minimum frequency (in Hz) for analysis region of interest.
 extern int alarmFreqMax;    // Maximum frequency (in Hz) for analysis region of interest.
 extern int nMin, nMax;      // Bin number of region of interest boundaries.
@@ -104,7 +115,7 @@ extern int alarmRatioThresh; // 10x Ratio of ROI power to Spectrum power to rais
 extern int accDataPos;   // Position in accData of last point in time series.
 extern int accDataFull;  // Flag so we know when we have a complete buffer full
                       // of data.
-extern short fftResults[NSAMP/2];  // FFT results
+extern short fftResults[NSAMP_MAX/2];  // FFT results
 extern int simpleSpec[10];  // Simplified spectrum - 1 to 10 Hz bins.
 extern AccelData latestAccelData;  // Latest accelerometer readings received.
 extern int maxVal;       // Peak amplitude in spectrum.

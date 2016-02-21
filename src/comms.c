@@ -4,7 +4,7 @@
 
   See http://openseizuredetector.org for more information.
 
-  Copyright Graham Jones, 2015.
+  Copyright Graham Jones, 2015, 2016.
 
   This file is part of pebble_sd.
 
@@ -48,6 +48,14 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
       APP_LOG(APP_LOG_LEVEL_INFO, "***********Phone Setting Settings");
       // We don't actually do anything here - the following sections
       // process the data and update the settings.
+      break;
+    case KEY_SAMPLE_PERIOD:
+      APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting SAMPLE_PERIOD to %d",
+	      samplePeriod = (int)t->value->int16);
+      break;
+    case KEY_SAMPLE_FREQ:
+      APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting SAMPLE_FREQ to %d",
+	      sampleFreq = (int)t->value->int16);
       break;
     case KEY_ALARM_FREQ_MIN:
       APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting ALARM_FREQ_MIN to %d",

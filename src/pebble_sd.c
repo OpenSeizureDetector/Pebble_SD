@@ -4,7 +4,7 @@
 
   See http://openseizuredetector.org for more information.
 
-  Copyright Graham Jones, 2015.
+  Copyright Graham Jones, 2015, 2016
 
   This file is part of pebble_sd.
 
@@ -28,6 +28,10 @@
 
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
+int sampleFreq;      // Sampling frequency in Hz (must be one of 10,25,50 or 100)
+int samplePeriod;    // Sample period in seconds
+int nSamp;           // number of samples in sampling period
+                     //  (rounded up to a power of 2)
 int alarmFreqMin;    // Bin number of lower boundary of region of interest
 int alarmFreqMax;    // Bin number of higher boundary of region of interest
 int warnTime;        // number of seconds above threshold to raise warning
@@ -248,8 +252,16 @@ static void window_unload(Window *window) {
  * for accelerometer data readings.
  */
 static void init(void) {
+  int nsInit;  // initial number of samples per period, before rounding
+  int i,ns;
   APP_LOG(APP_LOG_LEVEL_DEBUG,"init() - Loading persistent storage variables...");
   // Load data from persistent storage into global variables.
+  samplePeriod = SAMPLE_PERIOD_DEFAULT;
+  if (persist_exists(KEY_SAMPLE_PERIOD))
+    samplePeriod = persist_read_int(KEY_SAMPLE_PERIOD);
+  sampleFreq = SAMPLE_FREQ_DEFAULT;
+  if (persist_exists(KEY_SAMPLE_FREQ))
+    sampleFreq = persist_read_int(KEY_SAMPLE_FREQ);
   alarmFreqMin = ALARM_FREQ_MIN_DEFAULT;
   if (persist_exists(KEY_ALARM_FREQ_MIN))
     alarmFreqMin = persist_read_int(KEY_ALARM_FREQ_MIN);
@@ -294,6 +306,25 @@ static void init(void) {
   window_stack_push(window, animated);
 
   // Initialise analysis of accelerometer data.
+  // get number of samples per period, and round up to a power of 2
+  nsInit = samplePeriod * sampleFreq;
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "samplePeriod=%d, sampleFreq=%d - nsInit=%d",
+	  samplePeriod,sampleFreq,nsInit);
+
+  for (i=0;i<1000;i++) {
+    ns = 2<<i;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "i=%d  ns=%d nsInit = %d",
+	    i,ns,nsInit);
+    if (ns >= nsInit) {
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "i=%d ns=%d, nsInit = %d",
+	      i,ns,nsInit);
+      nSamp = ns;
+      break;
+    }
+  }
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "nSamp rounded up to %d",
+	  nSamp);
+
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Initialising Analysis System....");
   analysis_init();
 
@@ -312,6 +343,8 @@ static void init(void) {
  */
 static void deinit(void) {
   // Save settings to persistent storage
+  persist_write_int(KEY_SAMPLE_PERIOD,samplePeriod);
+  persist_write_int(KEY_SAMPLE_FREQ,sampleFreq);
   persist_write_int(KEY_ALARM_FREQ_MIN,alarmFreqMin);
   persist_write_int(KEY_ALARM_FREQ_MAX,alarmFreqMax);
   persist_write_int(KEY_WARN_TIME,warnTime);

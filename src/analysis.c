@@ -4,7 +4,7 @@
 
   See http://openseizuredetector.org for more information.
 
-  Copyright Graham Jones, 2015.
+  Copyright Graham Jones, 2015, 2016.
 
   This file is part of pebble_sd.
 
@@ -32,11 +32,9 @@
 
 
 /* GLOBAL VARIABLES */
-
-uint32_t num_samples = NSAMP;
-short accData[NSAMP];   // Using short into for compatibility with integer_fft library.
-fft_complex_t fftdata[NSAMP];   // spectrum calculated by FFT
-short fftResults[NSAMP/2];  // FFT results
+short accData[NSAMP_MAX];   // Using short into for compatibility with integer_fft library.
+fft_complex_t fftdata[NSAMP_MAX];   // spectrum calculated by FFT
+short fftResults[NSAMP_MAX/2];  // FFT results
 int simpleSpec[10];   // simplified spectrum - 0-10 Hz
 
 int accDataPos = 0;   // Position in accData of last point in time series.
@@ -101,7 +99,7 @@ void accel_handler(AccelData *data, uint32_t num_samples) {
   // Add the new data to the accData buffer
   for (i=0;i<(int)num_samples;i++) {
     // Wrap around the buffer if necessary
-    if (accDataPos>=NSAMP) { 
+    if (accDataPos>=nSamp) { 
       accDataPos = 0;
       accDataFull = 1;
       break;
@@ -126,12 +124,12 @@ void accel_handler(AccelData *data, uint32_t num_samples) {
 void check_fall() {
   int i,j;
   int minAcc, maxAcc;
-  int fallWindowSamp = (fallWindow*SAMP_FREQ)/1000; // Convert ms to samples.
+  int fallWindowSamp = (fallWindow*sampleFreq)/1000; // Convert ms to samples.
   APP_LOG(APP_LOG_LEVEL_DEBUG,"check_fall() - fallWindowSamp=%d",
 	  fallWindowSamp);
   // Move window through sample buffer, checking for fall.
   fallDetected = 0;
-  for (i=0;i<NSAMP-fallWindowSamp;i++) {  // i = window start point
+  for (i=0;i<nSamp-fallWindowSamp;i++) {  // i = window start point
     // Find max and min acceleration within window.
     minAcc = accData[i];
     maxAcc = accData[i];
@@ -162,7 +160,7 @@ void do_analysis() {
 
   // Calculate the frequency resolution of the output spectrum.
   // Stored as an integer which is 1000 x the frequency resolution in Hz.
-  freqRes = (int)(1000*SAMP_FREQ/NSAMP);
+  freqRes = (int)(1000*sampleFreq/nSamp);
   APP_LOG(APP_LOG_LEVEL_DEBUG,"freqRes=%d",freqRes);
 
   APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis");
@@ -172,7 +170,7 @@ void do_analysis() {
   APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis():  nMin=%d, nMax=%d",nMin,nMax);
 
   // Populate the fft input array with the accelerometer data 
-  for (i=0;i<NSAMP;i++) {
+  for (i=0;i<nSamp;i++) {
     // FIXME - this needs to recognise that accData is actually a rolling buffer and re-order it too!
     fftdata[i].r = accData[i];
     fftdata[i].i = 0;
@@ -186,7 +184,7 @@ void do_analysis() {
   maxVal = getMagnitude(fftdata[1]);
   maxLoc = 1;
   specPower = 0;
-  for (i=1;i<NSAMP/2;i++) {
+  for (i=1;i<nSamp/2;i++) {
     // Find absolute value of the imaginary fft output.
     fftdata[i].r = getMagnitude(fftdata[i]);
     fftResults[i] = getMagnitude(fftdata[i]);   // Set Global variable.
@@ -197,7 +195,7 @@ void do_analysis() {
     }
   }
   maxFreq = (int)(maxLoc*freqRes/1000);
-  specPower = specPower/(NSAMP/2);
+  specPower = specPower/(nSamp/2);
   APP_LOG(APP_LOG_LEVEL_DEBUG,"specPower=%ld",specPower);
 
   // calculate spectrum power in the region of interest
@@ -233,8 +231,8 @@ void do_analysis() {
 void analysis_init() {
   /* Subscribe to acceleration data service */
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Analysis Init:  Subcribing to acceleration data");
-  accel_data_service_subscribe(NSAMP,accel_handler);
+  accel_data_service_subscribe(25,accel_handler);
   // Choose update rate
-  accel_service_set_sampling_rate(SAMP_FREQ_STR);
+  accel_service_set_sampling_rate(sampleFreq);
 }
 
