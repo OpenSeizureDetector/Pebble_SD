@@ -149,6 +149,7 @@ void sendSdData() {
  */
 void sendSettings() {
   DictionaryIterator *iter;
+  APP_LOG(APP_LOG_LEVEL_INFO, "sendSettings()");
   app_message_outbox_begin(&iter);
   // Tell the phone this is settings data
   dict_write_uint8(iter,KEY_DATA_TYPE,(uint8_t)DATA_TYPE_SETTINGS);
