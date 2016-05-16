@@ -163,6 +163,12 @@ void sendSettings() {
   dict_write_uint8(iter,KEY_DATA_TYPE,(uint8_t)DATA_TYPE_SETTINGS);
   dict_write_uint8(iter,KEY_SETTINGS,(uint8_t)1);
   // then the actual settings
+  // first the app version number
+  dict_write_uint8(iter,KEY_VERSION_MAJOR,
+		   (uint8_t)__pbl_app_info.process_version.major);
+  dict_write_uint8(iter,KEY_VERSION_MINOR,
+		   (uint8_t)__pbl_app_info.process_version.minor);
+  // then the settings
   dict_write_uint32(iter,KEY_SAMPLE_PERIOD,(uint32_t)samplePeriod);
   dict_write_uint32(iter,KEY_SAMPLE_FREQ,(uint32_t)sampleFreq);
   dict_write_uint32(iter,KEY_DATA_UPDATE_PERIOD,(uint32_t)dataUpdatePeriod);

@@ -25,8 +25,6 @@
 #include <pebble.h>
 
 #include "pebble_sd.h"
-#include "pebble_process_info.h"
-extern const PebbleProcessInfo __pbl_app_info;
 
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)

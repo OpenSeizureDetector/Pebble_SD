@@ -24,6 +24,8 @@
 */
 
 #include <pebble.h>
+#include "pebble_process_info.h"
+extern const PebbleProcessInfo __pbl_app_info;
 
 
 /* ANALYSIS CONFIGURATION */
@@ -103,6 +105,8 @@
 #define KEY_DATA_UPDATE_PERIOD 27
 #define KEY_MUTE_PERIOD 28
 #define KEY_MAN_ALARM_PERIOD 29
+#define KEY_VERSION_MAJOR 30
+#define KEY_VERSION_MINOR 31
 
 // Values of the KEY_DATA_TYPE entry in a message
 #define DATA_TYPE_RESULTS 1   // Analysis Results
