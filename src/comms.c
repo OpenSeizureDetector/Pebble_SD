@@ -35,6 +35,8 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
   // Get the first pair
   Tuple *t = dict_read_first(iterator);
 
+  int settingsChanged = 0;
+  
   // Process all pairs present
   while(t != NULL) {
     // Process this pair's key
@@ -56,10 +58,12 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
     case KEY_SAMPLE_PERIOD:
       APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting SAMPLE_PERIOD to %d",
 	      samplePeriod = (int)t->value->int16);
+      settingsChanged = 1;
       break;
     case KEY_SAMPLE_FREQ:
       APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting SAMPLE_FREQ to %d",
 	      sampleFreq = (int)t->value->int16);
+      settingsChanged = 1;
       break;
     case KEY_DATA_UPDATE_PERIOD:
       APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting DATA_UPDATE_PERIOD to %d",
@@ -116,7 +120,12 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
     }
     // Get next pair, if any
     t = dict_read_next(iterator);
-  }}
+  }
+  if (settingsChanged) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG,"Accelerometer Settings Changed - resetting");
+    analysis_init();
+  }
+}
 
 void inbox_dropped_callback(AppMessageResult reason, void *context) {
   APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");

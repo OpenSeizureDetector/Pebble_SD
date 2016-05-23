@@ -182,14 +182,24 @@ void do_analysis() {
   maxVal = getMagnitude(fftdata[1]);
   maxLoc = 1;
   specPower = 0;
+  // Calculate the bin number of the maximum detectable frequency
+  // (the nyquist threshold)
+  int maxn = (int)(1000*sampleFreq/2/freqRes);  
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"nSamp = %d, maxn=%d",nSamp,maxn);
   for (i=1;i<nSamp/2;i++) {
     // Find absolute value of the imaginary fft output.
-    fftdata[i].r = getMagnitude(fftdata[i]);
-    fftResults[i] = getMagnitude(fftdata[i]);   // Set Global variable.
-    specPower = specPower + fftdata[i].r;
-    if (fftdata[i].r>maxVal) {
-      maxVal = fftdata[i].r;
-      maxLoc = i;
+    if (i<maxn) {
+      fftdata[i].r = getMagnitude(fftdata[i]);
+      fftResults[i] = getMagnitude(fftdata[i]);   // Set Global variable.
+      specPower = specPower + fftdata[i].r;
+      if (fftdata[i].r>maxVal) {
+	maxVal = fftdata[i].r;
+	maxLoc = i;
+      }
+    } else {
+      APP_LOG(APP_LOG_LEVEL_DEBUG,"i = %d, zeroing data above nyquist threshold",i);
+      fftdata[i].r = 0;
+      fftResults[i] = 0;
     }
   }
   maxFreq = (int)(maxLoc*freqRes/1000);
@@ -227,20 +237,45 @@ void do_analysis() {
 }
 
 void analysis_init() {
+  int nsInit;  // initial number of samples per period, before rounding
+  int i,ns;
   // Zero all data arrays:
-  for (int i = 0; i<NSAMP_MAX; i++) {
+  for (i = 0; i<NSAMP_MAX; i++) {
     accData[i] = 0;
     fftdata[i].r = 0;
     fftdata[i].i = 0;
   }
-  for (int i = 0; i<NSAMP_MAX/2; i++) {
+  for (i = 0; i<NSAMP_MAX/2; i++) {
     fftResults[i] = 0;
   }
 
+  // Initialise analysis of accelerometer data.
+  // get number of samples per period, and round up to a power of 2
+  nsInit = samplePeriod * sampleFreq;
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "samplePeriod=%d, sampleFreq=%d - nsInit=%d",
+	  samplePeriod,sampleFreq,nsInit);
+
+  for (i=0;i<1000;i++) {
+    ns = 2<<i;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "i=%d  ns=%d nsInit = %d",
+	    i,ns,nsInit);
+    if (ns >= nsInit) {
+      nSamp = ns;
+      fftBits = i;
+      break;
+    }
+  }
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "nSamp rounded up to %d",
+	  nSamp);
+
+  
   /* Subscribe to acceleration data service */
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Analysis Init:  Subcribing to acceleration data at frequency %d Hz",sampleFreq);
   accel_data_service_subscribe(25,accel_handler);
   // Choose update rate
   accel_service_set_sampling_rate(sampleFreq);
+
+
+
 }
 
