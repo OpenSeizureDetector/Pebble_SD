@@ -29,6 +29,8 @@
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
 int sampleFreq;      // Sampling frequency in Hz (must be one of 10,25,50 or 100)
+int freqCutoff;      // Frequency above which movement is ignored.
+int nFreqCutoff;     // Bin number of cutoff frequency.
 int samplePeriod;    // Sample period in seconds
 int nSamp;           // number of samples in sampling period
                      //  (rounded up to a power of 2)
@@ -220,10 +222,9 @@ void draw_spec(Layer *sl, GContext *ctx) {
   /* Now draw the spectrum */
   for (i=0;i<bounds.size.w-1;i++) {
     p0 = GPoint(i,bounds.size.h-1);
-    //h = bounds.size.h*accData[i]/2000;
-    if (i<=nSamp/2) {
+    if (i<=nFreqCutoff) {
       h = bounds.size.h*getAmpl(i)/1000.;
-      //APP_LOG(APP_LOG_LEVEL_DEBUG,"i = %d, h=%d",i,h);
+      APP_LOG(APP_LOG_LEVEL_DEBUG,"i = %d, h=%d",i,h);
     }
     else {
       h = bounds.size.h/4;
@@ -416,6 +417,9 @@ static void init(void) {
   sampleFreq = SAMPLE_FREQ_DEFAULT;
   if (persist_exists(KEY_SAMPLE_FREQ))
     sampleFreq = persist_read_int(KEY_SAMPLE_FREQ);
+  freqCutoff = FREQ_CUTOFF_DEFAULT;
+  if (persist_exists(KEY_FREQ_CUTOFF))
+    freqCutoff = persist_read_int(KEY_FREQ_CUTOFF);
   dataUpdatePeriod = DATA_UPDATE_PERIOD_DEFAULT;
   if (persist_exists(KEY_DATA_UPDATE_PERIOD))
     dataUpdatePeriod = persist_read_int(KEY_DATA_UPDATE_PERIOD);
@@ -493,6 +497,7 @@ static void deinit(void) {
   // Save settings to persistent storage
   persist_write_int(KEY_SAMPLE_PERIOD,samplePeriod);
   persist_write_int(KEY_SAMPLE_FREQ,sampleFreq);
+  persist_write_int(KEY_FREQ_CUTOFF,freqCutoff);
   persist_write_int(KEY_DATA_UPDATE_PERIOD,dataUpdatePeriod);
   persist_write_int(KEY_ALARM_FREQ_MIN,alarmFreqMin);
   persist_write_int(KEY_ALARM_FREQ_MAX,alarmFreqMax);

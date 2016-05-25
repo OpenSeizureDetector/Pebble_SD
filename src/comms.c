@@ -65,6 +65,11 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
 	      sampleFreq = (int)t->value->int16);
       settingsChanged = 1;
       break;
+    case KEY_FREQ_CUTOFF:
+      APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting FREQ_CUTOFF to %d",
+	      freqCutoff = (int)t->value->int16);
+      settingsChanged = 1;
+      break;
     case KEY_DATA_UPDATE_PERIOD:
       APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting DATA_UPDATE_PERIOD to %d",
 	      dataUpdatePeriod = (int)t->value->int16);
@@ -180,6 +185,7 @@ void sendSettings() {
   // then the settings
   dict_write_uint32(iter,KEY_SAMPLE_PERIOD,(uint32_t)samplePeriod);
   dict_write_uint32(iter,KEY_SAMPLE_FREQ,(uint32_t)sampleFreq);
+  dict_write_uint32(iter,KEY_FREQ_CUTOFF,(uint32_t)freqCutoff);
   dict_write_uint32(iter,KEY_DATA_UPDATE_PERIOD,(uint32_t)dataUpdatePeriod);
   dict_write_uint32(iter,KEY_ALARM_FREQ_MIN,(uint32_t)alarmFreqMin);
   dict_write_uint32(iter,KEY_ALARM_FREQ_MAX,(uint32_t)alarmFreqMax);

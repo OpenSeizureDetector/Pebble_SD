@@ -161,11 +161,15 @@ void do_analysis() {
   // Calculate the frequency resolution of the output spectrum.
   // Stored as an integer which is 1000 x the frequency resolution in Hz.
   freqRes = (int)(1000*sampleFreq/nSamp);
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"freqRes=%d",freqRes);
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"T=%d ms, freqRes=%d Hz/bin",1000*nSamp/sampleFreq,freqRes);
   // Set the frequency bounds for the analysis in fft output bin numbers.
   nMin = 1000*alarmFreqMin/freqRes;
   nMax = 1000*alarmFreqMax/freqRes;
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis():  nMin=%d, nMax=%d",nMin,nMax);
+  // Calculate the bin number of the cutoff frequency
+  nFreqCutoff = (int)(1000*freqCutoff/freqRes);  
+
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis():  nMin=%d, nMax=%d, nFreqCutoff=%d",
+	  nMin,nMax,nFreqCutoff);
 
   // Populate the fft input array with the accelerometer data 
   for (i=0;i<nSamp;i++) {
@@ -182,13 +186,9 @@ void do_analysis() {
   maxVal = getMagnitude(fftdata[1]);
   maxLoc = 1;
   specPower = 0;
-  // Calculate the bin number of the maximum detectable frequency
-  // (the nyquist threshold)
-  int maxn = (int)(1000*sampleFreq/2/freqRes);  
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"nSamp = %d, maxn=%d",nSamp,maxn);
   for (i=1;i<nSamp/2;i++) {
     // Find absolute value of the imaginary fft output.
-    if (i<maxn) {
+    if (i<=nFreqCutoff) {
       fftdata[i].r = getMagnitude(fftdata[i]);
       fftResults[i] = getMagnitude(fftdata[i]);   // Set Global variable.
       specPower = specPower + fftdata[i].r;
@@ -197,7 +197,7 @@ void do_analysis() {
 	maxLoc = i;
       }
     } else {
-      APP_LOG(APP_LOG_LEVEL_DEBUG,"i = %d, zeroing data above nyquist threshold",i);
+      APP_LOG(APP_LOG_LEVEL_DEBUG,"i = %d, zeroing data above cutoff frequency",i);
       fftdata[i].r = 0;
       fftResults[i] = 0;
     }

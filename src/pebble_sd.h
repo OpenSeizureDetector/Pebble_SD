@@ -35,7 +35,7 @@ extern const PebbleProcessInfo __pbl_app_info;
 #define SAMPLE_FREQ_DEFAULT 100  // Hz
 #define NSAMP_MAX 512       // maximum number of samples of accelerometer
                             // data to collect (used to size arrays).
-
+#define FREQ_CUTOFF_DEFAULT 12 // Hz - frequency above which movement is ignored.
 #define DATA_UPDATE_PERIOD_DEFAULT 20 // number of seconds between sending
                             //data to phone
                             // note data is sent instantaneously if an alarm
@@ -107,6 +107,7 @@ extern const PebbleProcessInfo __pbl_app_info;
 #define KEY_MAN_ALARM_PERIOD 29
 #define KEY_VERSION_MAJOR 30
 #define KEY_VERSION_MINOR 31
+#define KEY_FREQ_CUTOFF 32
 
 // Values of the KEY_DATA_TYPE entry in a message
 #define DATA_TYPE_RESULTS 1   // Analysis Results
@@ -127,6 +128,8 @@ extern const PebbleProcessInfo __pbl_app_info;
 extern int samplePeriod;    // sample period in seconds.
 extern int sampleFreq;      // sampling frequency in Hz
                             //    (must be one of 10,25,50 or 100)
+extern int freqCutoff;      // frequency above which movement is ignored.
+extern int nFreqCutoff;     // bin number of cutoff frequency.
 extern int nSamp;           // number of samples in sampling period
                             //    (rounded up to a power of 2)
 extern int fftBits;          // Size of fft data array - nSamp = 2^(fftBits)
