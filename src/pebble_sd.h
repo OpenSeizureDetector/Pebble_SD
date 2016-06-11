@@ -24,7 +24,9 @@
 */
 
 #include <pebble.h>
-
+/* COMMS CONFIGURATION */
+#define OUTBOX_SIZE 512   // App Message Outpbox size in bytes
+#define INBOX_SIZE 512    // App Message Inbox size in bytes
 
 /* ANALYSIS CONFIGURATION */
 #define SAMP_FREQ 100    // Sample Frequency in Hz

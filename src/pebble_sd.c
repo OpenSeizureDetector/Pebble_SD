@@ -89,9 +89,6 @@ int alarmCount = 0;    // number of seconds that we have been in an alarm state.
 static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   static char s_batt_buffer[16];
   static char s_time_buffer[16];
-  static char s_alarm_buffer[64];
-  static char s_buffer[256];
-  //static int analysisCount=0;
   static int dataUpdateCount = 0;
   static int lastAlarmState = 0;
 
@@ -119,59 +116,52 @@ static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   }
   
   
-  ///* Only process data every ANALYSIS_PERIOD seconds */
-  //analysisCount++;
-  //if (analysisCount>=ANALYSIS_PERIOD) {
-    // Do FFT analysis
-    if (accDataFull) {
-      do_analysis();
-      if (fallActive) check_fall();  // sets fallDetected global variable.
-      // Check the alarm state, and set the global alarmState variable.
-      alarm_check();
-
-      // If no seizure detected, modify alarmState to reflect potential fall
-      // detection
-      if ((alarmState == ALARM_STATE_OK) && (fallDetected==1))
-	alarmState = ALARM_STATE_FALL;
-
-      //  Display alarm message on screen.
-      if (alarmState == ALARM_STATE_OK) {
-	text_layer_set_text(alarm_layer, "OK");
-      }
-      if (alarmState == ALARM_STATE_WARN) {
-	//vibes_short_pulse();
-	text_layer_set_text(alarm_layer, "WARNING");
-      }
-      if (alarmState == ALARM_STATE_ALARM) {
-	//vibes_long_pulse();
-	text_layer_set_text(alarm_layer, "** ALARM **");
-      }
-      if (alarmState == ALARM_STATE_FALL) {
-	//vibes_long_pulse();
-	text_layer_set_text(alarm_layer, "** FALL **");
-      }
-      if (isManAlarm) {
-	alarmState = ALARM_STATE_MAN_ALARM;
-	text_layer_set_text(alarm_layer, "** MAN ALARM **");
-      }
-      if (isMuted) {
-	alarmState = ALARM_STATE_MUTE;
-	text_layer_set_text(alarm_layer, "** MUTE **");
-      }
-
-
-      // Send data to phone if we have an alarm condition.
-      // or if alarm state has changed from last time.
-      if ((alarmState != ALARM_STATE_OK && !isMuted) ||
-	  (alarmState != lastAlarmState)) {
-	sendSdData();
-      }
-      lastAlarmState = alarmState;
+  // Do FFT analysis if we have filled the buffer with data.
+  if (accDataFull) {
+    do_analysis();
+    if (fallActive) check_fall();  // sets fallDetected global variable.
+    // Check the alarm state, and set the global alarmState variable.
+    alarm_check();
+    
+    // If no seizure detected, modify alarmState to reflect potential fall
+    // detection
+    if ((alarmState == ALARM_STATE_OK) && (fallDetected==1))
+      alarmState = ALARM_STATE_FALL;
+    
+    //  Display alarm message on screen.
+    if (alarmState == ALARM_STATE_OK) {
+      text_layer_set_text(alarm_layer, "OK");
     }
-    // Re-set counter.
-    //analysisCount = 0;
-    //}
-
+    if (alarmState == ALARM_STATE_WARN) {
+      //vibes_short_pulse();
+      text_layer_set_text(alarm_layer, "WARNING");
+    }
+    if (alarmState == ALARM_STATE_ALARM) {
+      //vibes_long_pulse();
+      text_layer_set_text(alarm_layer, "** ALARM **");
+    }
+    if (alarmState == ALARM_STATE_FALL) {
+      //vibes_long_pulse();
+      text_layer_set_text(alarm_layer, "** FALL **");
+    }
+    if (isManAlarm) {
+      alarmState = ALARM_STATE_MAN_ALARM;
+      text_layer_set_text(alarm_layer, "** MAN ALARM **");
+    }
+    if (isMuted) {
+      alarmState = ALARM_STATE_MUTE;
+      text_layer_set_text(alarm_layer, "** MUTE **");
+    }    
+    
+    // Send data to phone if we have an alarm condition.
+    // or if alarm state has changed from last time.
+    if ((alarmState != ALARM_STATE_OK && !isMuted) ||
+	(alarmState != lastAlarmState)) {
+      sendSdData();
+    }
+    lastAlarmState = alarmState;
+  }
+  
   // See if it is time to send data to the phone.
   dataUpdateCount++;
   if (dataUpdateCount>=dataUpdatePeriod) {

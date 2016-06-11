@@ -179,12 +179,36 @@ void sendSettings() {
 
 
 void comms_init() {
+  APP_LOG(APP_LOG_LEVEL_INFO, "comms_init()");
   // Register comms callbacks
   app_message_register_inbox_received(inbox_received_callback);
+  APP_LOG(APP_LOG_LEVEL_INFO, "comms_init() - registered inbox_received_callback.");
   app_message_register_inbox_dropped(inbox_dropped_callback);
+  APP_LOG(APP_LOG_LEVEL_INFO, "comms_init() - registered inbox_dropped_callback.");
   app_message_register_outbox_failed(outbox_failed_callback);
+  APP_LOG(APP_LOG_LEVEL_INFO, "comms_init() - registered outbox_failed_callback.");
   app_message_register_outbox_sent(outbox_sent_callback);
+  APP_LOG(APP_LOG_LEVEL_INFO, "comms_init() - registered outbox_failed_callback.");
   // Open AppMessage
-  app_message_open(app_message_inbox_size_maximum(), 
-		   app_message_outbox_size_maximum());
+  //int retVal = app_message_open(app_message_inbox_size_maximum(), 
+  //		   app_message_outbox_size_maximum());
+  int retVal = app_message_open(INBOX_SIZE, 
+  				OUTBOX_SIZE);
+
+  if (retVal == APP_MSG_OK) 
+    APP_LOG(APP_LOG_LEVEL_INFO, "comms_init() - app_message_open() Success - retVal=%d, inbox_size=%d, outbox_size=%d",retVal,
+	  INBOX_SIZE,
+	  OUTBOX_SIZE);
+  else if (retVal == APP_MSG_OUT_OF_MEMORY)
+    APP_LOG(APP_LOG_LEVEL_ERROR, "comms_init() - app_message_open() **** OUT_OF_MEMORY **** - retVal=%d, max_inbox_size=%d, max_outbox_size=%d",retVal,
+	  INBOX_SIZE,
+	  OUTBOX_SIZE);
+  else
+    APP_LOG(APP_LOG_LEVEL_ERROR, "comms_init() - app_message_open() - retVal=%d, max_inbox_size=%d, max_outbox_size=%d",retVal,
+	  INBOX_SIZE,
+	  OUTBOX_SIZE);
+
+
+
+
 }
