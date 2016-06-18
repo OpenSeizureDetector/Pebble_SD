@@ -24,7 +24,9 @@
 */
 
 #include <pebble.h>
-
+/* COMMS CONFIGURATION */
+#define OUTBOX_SIZE 512   // App Message Outpbox size in bytes
+#define INBOX_SIZE 512    // App Message Inbox size in bytes
 
 /* ANALYSIS CONFIGURATION */
 
@@ -98,11 +100,11 @@
 #define KEY_FALL_THRESH_MAX 22
 #define KEY_FALL_WINDOW 23
 #define KEY_FALL_ACTIVE 24
-#define KEY_SAMPLE_FREQ 25
-#define KEY_SAMPLE_PERIOD 26
-#define KEY_DATA_UPDATE_PERIOD 27
-#define KEY_MUTE_PERIOD 28
-#define KEY_MAN_ALARM_PERIOD 29
+#define KEY_DATA_UPDATE_PERIOD 25
+#define KEY_MUTE_PERIOD 26
+#define KEY_MAN_ALARM_PERIOD 27
+#define KEY_SAMPLE_FREQ 28
+#define KEY_SAMPLE_PERIOD 29
 
 // Values of the KEY_DATA_TYPE entry in a message
 #define DATA_TYPE_RESULTS 1   // Analysis Results

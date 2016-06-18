@@ -3,7 +3,7 @@
   "shortName": "pebble_sd",
   "longName": "pebble_sd",
   "companyName": "OpenSeizureDetector",
-  "versionCode": 6,
+  "versionCode": 7,
   "versionLabel": "3.0",
   "watchapp": {
     "watchface": false
