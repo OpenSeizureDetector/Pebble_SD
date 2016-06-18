@@ -25,12 +25,12 @@
 #include <pebble.h>
 
 #include "pebble_sd.h"
-#include "pebble_process_info.h"
-extern const PebbleProcessInfo __pbl_app_info;
 
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
 int sampleFreq;      // Sampling frequency in Hz (must be one of 10,25,50 or 100)
+int freqCutoff;      // Frequency above which movement is ignored.
+int nFreqCutoff;     // Bin number of cutoff frequency.
 int samplePeriod;    // Sample period in seconds
 int nSamp;           // number of samples in sampling period
                      //  (rounded up to a power of 2)
@@ -212,11 +212,14 @@ void draw_spec(Layer *sl, GContext *ctx) {
   /* Now draw the spectrum */
   for (i=0;i<bounds.size.w-1;i++) {
     p0 = GPoint(i,bounds.size.h-1);
-    //h = bounds.size.h*accData[i]/2000;
-    if (i<=nSamp/2) 
+    if (i<=nFreqCutoff) {
       h = bounds.size.h*getAmpl(i)/1000.;
-    else
-      h = bounds.size.h;
+      APP_LOG(APP_LOG_LEVEL_DEBUG,"i = %d, h=%d",i,h);
+    }
+    else {
+      h = bounds.size.h/4;
+      //APP_LOG(APP_LOG_LEVEL_DEBUG,"Out of Range - i = %d, h=%d",i,h);
+    }
     p1 = GPoint(i,bounds.size.h - h);
     graphics_draw_line(ctx,p0,p1);
   }
@@ -396,8 +399,6 @@ static void window_unload(Window *window) {
  * for accelerometer data readings.
  */
 static void init(void) {
-  int nsInit;  // initial number of samples per period, before rounding
-  int i,ns;
   APP_LOG(APP_LOG_LEVEL_DEBUG,"init() - Loading persistent storage variables...");
   // Load data from persistent storage into global variables.
   samplePeriod = SAMPLE_PERIOD_DEFAULT;
@@ -406,6 +407,9 @@ static void init(void) {
   sampleFreq = SAMPLE_FREQ_DEFAULT;
   if (persist_exists(KEY_SAMPLE_FREQ))
     sampleFreq = persist_read_int(KEY_SAMPLE_FREQ);
+  freqCutoff = FREQ_CUTOFF_DEFAULT;
+  if (persist_exists(KEY_FREQ_CUTOFF))
+    freqCutoff = persist_read_int(KEY_FREQ_CUTOFF);
   dataUpdatePeriod = DATA_UPDATE_PERIOD_DEFAULT;
   if (persist_exists(KEY_DATA_UPDATE_PERIOD))
     dataUpdatePeriod = persist_read_int(KEY_DATA_UPDATE_PERIOD);
@@ -463,24 +467,6 @@ static void init(void) {
   // Detect button clicks
   window_set_click_config_provider(window, click_config_provider);
   
-  // Initialise analysis of accelerometer data.
-  // get number of samples per period, and round up to a power of 2
-  nsInit = samplePeriod * sampleFreq;
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "samplePeriod=%d, sampleFreq=%d - nsInit=%d",
-	  samplePeriod,sampleFreq,nsInit);
-
-  for (i=0;i<1000;i++) {
-    ns = 2<<i;
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "i=%d  ns=%d nsInit = %d",
-	    i,ns,nsInit);
-    if (ns >= nsInit) {
-      nSamp = ns;
-      fftBits = i;
-      break;
-    }
-  }
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "nSamp rounded up to %d",
-	  nSamp);
 
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Initialising Analysis System....");
   analysis_init();
@@ -501,6 +487,7 @@ static void deinit(void) {
   // Save settings to persistent storage
   persist_write_int(KEY_SAMPLE_PERIOD,samplePeriod);
   persist_write_int(KEY_SAMPLE_FREQ,sampleFreq);
+  persist_write_int(KEY_FREQ_CUTOFF,freqCutoff);
   persist_write_int(KEY_DATA_UPDATE_PERIOD,dataUpdatePeriod);
   persist_write_int(KEY_ALARM_FREQ_MIN,alarmFreqMin);
   persist_write_int(KEY_ALARM_FREQ_MAX,alarmFreqMax);

@@ -161,11 +161,15 @@ void do_analysis() {
   // Calculate the frequency resolution of the output spectrum.
   // Stored as an integer which is 1000 x the frequency resolution in Hz.
   freqRes = (int)(1000*sampleFreq/nSamp);
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"freqRes=%d",freqRes);
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"T=%d ms, freqRes=%d Hz/bin",1000*nSamp/sampleFreq,freqRes);
   // Set the frequency bounds for the analysis in fft output bin numbers.
   nMin = 1000*alarmFreqMin/freqRes;
   nMax = 1000*alarmFreqMax/freqRes;
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis():  nMin=%d, nMax=%d",nMin,nMax);
+  // Calculate the bin number of the cutoff frequency
+  nFreqCutoff = (int)(1000*freqCutoff/freqRes);  
+
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis():  nMin=%d, nMax=%d, nFreqCutoff=%d",
+	  nMin,nMax,nFreqCutoff);
 
   // Populate the fft input array with the accelerometer data 
   for (i=0;i<nSamp;i++) {
@@ -184,12 +188,18 @@ void do_analysis() {
   specPower = 0;
   for (i=1;i<nSamp/2;i++) {
     // Find absolute value of the imaginary fft output.
-    fftdata[i].r = getMagnitude(fftdata[i]);
-    fftResults[i] = getMagnitude(fftdata[i]);   // Set Global variable.
-    specPower = specPower + fftdata[i].r;
-    if (fftdata[i].r>maxVal) {
-      maxVal = fftdata[i].r;
-      maxLoc = i;
+    if (i<=nFreqCutoff) {
+      fftdata[i].r = getMagnitude(fftdata[i]);
+      fftResults[i] = getMagnitude(fftdata[i]);   // Set Global variable.
+      specPower = specPower + fftdata[i].r;
+      if (fftdata[i].r>maxVal) {
+	maxVal = fftdata[i].r;
+	maxLoc = i;
+      }
+    } else {
+      APP_LOG(APP_LOG_LEVEL_DEBUG,"i = %d, zeroing data above cutoff frequency",i);
+      fftdata[i].r = 0;
+      fftResults[i] = 0;
     }
   }
   maxFreq = (int)(maxLoc*freqRes/1000);
@@ -227,20 +237,45 @@ void do_analysis() {
 }
 
 void analysis_init() {
+  int nsInit;  // initial number of samples per period, before rounding
+  int i,ns;
   // Zero all data arrays:
-  for (int i = 0; i<NSAMP_MAX; i++) {
+  for (i = 0; i<NSAMP_MAX; i++) {
     accData[i] = 0;
     fftdata[i].r = 0;
     fftdata[i].i = 0;
   }
-  for (int i = 0; i<NSAMP_MAX/2; i++) {
+  for (i = 0; i<NSAMP_MAX/2; i++) {
     fftResults[i] = 0;
   }
 
+  // Initialise analysis of accelerometer data.
+  // get number of samples per period, and round up to a power of 2
+  nsInit = samplePeriod * sampleFreq;
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "samplePeriod=%d, sampleFreq=%d - nsInit=%d",
+	  samplePeriod,sampleFreq,nsInit);
+
+  for (i=0;i<1000;i++) {
+    ns = 2<<i;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "i=%d  ns=%d nsInit = %d",
+	    i,ns,nsInit);
+    if (ns >= nsInit) {
+      nSamp = ns;
+      fftBits = i;
+      break;
+    }
+  }
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "nSamp rounded up to %d",
+	  nSamp);
+
+  
   /* Subscribe to acceleration data service */
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Analysis Init:  Subcribing to acceleration data at frequency %d Hz",sampleFreq);
   accel_data_service_subscribe(25,accel_handler);
   // Choose update rate
   accel_service_set_sampling_rate(sampleFreq);
+
+
+
 }
 
