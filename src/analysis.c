@@ -98,25 +98,28 @@ int alarm_check() {
 void accel_handler(AccelData *data, uint32_t num_samples) {
   int i;
 
-  // Add the new data to the accData buffer
-  for (i=0;i<(int)num_samples;i++) {
-    // Wrap around the buffer if necessary
-    if (accDataPos>=NSAMP) { 
-      accDataPos = 0;
-      accDataFull = 1;
-      break;
+  if (sdMode==SD_MODE_RAW) {
+    sendRawData(*data,num_samples);
+  } else {
+    // Add the new data to the accData buffer
+    for (i=0;i<(int)num_samples;i++) {
+      // Wrap around the buffer if necessary
+      if (accDataPos>=NSAMP) { 
+	accDataPos = 0;
+	accDataFull = 1;
+	break;
+      }
+      // Ignore any data when the vibrator motor was running.
+      // FIXME - this doesn't seem to work - alarm latches on if the 
+      //         vibrator operates.
+      if (!data[i].did_vibrate) {
+	// add good data to the accData array
+	accData[accDataPos] = abs(data[i].x) + abs(data[i].y) + abs(data[i].z);
+	accDataPos++;
+      }
     }
-    // Ignore any data when the vibrator motor was running.
-    // FIXME - this doesn't seem to work - alarm latches on if the 
-    //         vibrator operates.
-    if (!data[i].did_vibrate) {
-      // add good data to the accData array
-      accData[accDataPos] = abs(data[i].x) + abs(data[i].y) + abs(data[i].z);
-      accDataPos++;
-    }
+    latestAccelData = data[num_samples-1];
   }
-  latestAccelData = data[num_samples-1];
-
 }
 
 /****************************************************************

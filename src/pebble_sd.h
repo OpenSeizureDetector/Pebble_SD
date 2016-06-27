@@ -107,11 +107,14 @@
 #define KEY_MAN_ALARM_PERIOD 27
 #define KEY_SD_MODE 28
 #define KEY_SAMPLE_FREQ 29
+#define KEY_RAW_DATA 30
+#define KEY_NUM_RAW_DATA 31
 
 // Values of the KEY_DATA_TYPE entry in a message
 #define DATA_TYPE_RESULTS 1   // Analysis Results
 #define DATA_TYPE_SETTINGS 2  // Settings
 #define DATA_TYPE_SPEC 3      // FFT Spectrum (or part of a spectrum)
+#define DATA_TYPE_RAW 4       // Raw accelerometer data.
 
 // Values for ALARM_STATE
 #define ALARM_STATE_OK 0   // no alarm
