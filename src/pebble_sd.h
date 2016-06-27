@@ -40,6 +40,8 @@
                             //data to phone
                             // note data is sent instantaneously if an alarm
                             // condition is detected.
+#define SD_MODE_DEFAULT        0  // FFT Mode
+#define SAMPLE_FREQ_DEFAULT    100 // Hz
 #define ALARM_FREQ_MIN_DEFAULT 5  // Hz
 #define ALARM_FREQ_MAX_DEFAULT 10 // Hz
 #define WARN_TIME_DEFAULT      5 // sec
@@ -103,6 +105,8 @@
 #define KEY_DATA_UPDATE_PERIOD 25
 #define KEY_MUTE_PERIOD 26
 #define KEY_MAN_ALARM_PERIOD 27
+#define KEY_SD_MODE 28
+#define KEY_SAMPLE_FREQ 29
 
 // Values of the KEY_DATA_TYPE entry in a message
 #define DATA_TYPE_RESULTS 1   // Analysis Results
@@ -118,9 +122,16 @@
 #define ALARM_STATE_MAN_ALARM 5 // Manual Alarm
 #define ALARM_STATE_MUTE 6  // Alarm Muted
 
+// Values for SD_MODE
+#define SD_MODE_FFT 0     // The original OpenSeizureDetector mode (FFT based)
+#define SD_MODE_RAW 1     // Send raw, unprocessed data to the phone.
+#define SD_MODE_FILTER 2  // Use digital filter rather than FFT.
+
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
 extern int dataUpdatePeriod; // period (in sec) between sending data to the phone
+extern int sdMode;          // Seizure Detector mode 0=normal, 1=raw, 2=filter
+extern int sampleFreq;      // Sample frequency in Hz.
 extern int alarmFreqMin;    // Minimum frequency (in Hz) for analysis region of interest.
 extern int alarmFreqMax;    // Maximum frequency (in Hz) for analysis region of interest.
 extern int nMin, nMax;      // Bin number of region of interest boundaries.
@@ -170,6 +181,7 @@ void inbox_dropped_callback(AppMessageResult reason, void *context);
 void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context);
 void outbox_sent_callback(DictionaryIterator *iterator, void *context);
 void sendSdData();
+void sendRawData();
 void comms_init();
 
 

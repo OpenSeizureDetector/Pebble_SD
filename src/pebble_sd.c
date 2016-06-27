@@ -31,6 +31,8 @@ extern const PebbleProcessInfo __pbl_app_info;
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
 int dataUpdatePeriod; // number of seconds between sending data to the phone.
+int sdMode;          // Seizure Detector mode 0=normal, 1=raw, 2=filter
+int sampleFreq;      // Sample frequency in Hz
 int alarmFreqMin;    // Bin number of lower boundary of region of interest
 int alarmFreqMax;    // Bin number of higher boundary of region of interest
 int warnTime;        // number of seconds above threshold to raise warning
@@ -393,6 +395,12 @@ static void init(void) {
   dataUpdatePeriod = DATA_UPDATE_PERIOD_DEFAULT;
   if (persist_exists(KEY_DATA_UPDATE_PERIOD))
     dataUpdatePeriod = persist_read_int(KEY_DATA_UPDATE_PERIOD);
+  sdMode = SD_MODE_DEFAULT;
+  if (persist_exists(KEY_SD_MODE))
+    sdMode = persist_read_int(KEY_SD_MODE);
+  sampleFreq = SAMPLE_FREQ_DEFAULT;
+  if (persist_exists(KEY_SAMPLE_FREQ))
+    sampleFreq = persist_read_int(KEY_SAMPLE_FREQ);
   alarmFreqMin = ALARM_FREQ_MIN_DEFAULT;
   if (persist_exists(KEY_ALARM_FREQ_MIN))
     alarmFreqMin = persist_read_int(KEY_ALARM_FREQ_MIN);
@@ -466,6 +474,8 @@ static void init(void) {
 static void deinit(void) {
   // Save settings to persistent storage
   persist_write_int(KEY_DATA_UPDATE_PERIOD,dataUpdatePeriod);
+  persist_write_int(KEY_SD_MODE,sdMode);
+  persist_write_int(KEY_SAMPLE_FREQ,sampleFreq);
   persist_write_int(KEY_ALARM_FREQ_MIN,alarmFreqMin);
   persist_write_int(KEY_ALARM_FREQ_MAX,alarmFreqMax);
   persist_write_int(KEY_WARN_TIME,warnTime);
