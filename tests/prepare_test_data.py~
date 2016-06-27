@@ -1,0 +1,54 @@
+#!/usr/bin/python
+#
+#############################################################################
+#
+# Copyright Graham Jones, 2013-2016
+#
+#############################################################################
+#
+#   This file is part of OpenSeizureDetector.
+#
+#    OpenSeizureDetector is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    OpenSeizureDetector is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with OpenSeizureDetector.  If not, see <http://www.gnu.org/licenses/>.
+##############################################################################
+"""Prepare sample acceleration data files to test analysis algorithms"""
+ 
+__appname__ = "prepare_test_data.py"
+__author__  = "Graham Jones"
+__version__ = "0.1"
+__license__ = "GNU GPL 3.0 or later"
+
+
+
+if __name__=="__main__":
+    # Boilerplate code from https://gist.github.com/ssokolow/151572
+    from optparse import OptionParser
+    parser = OptionParser(version="%%prog v%s" % __version__,
+            usage="%prog [options] <argument> ...",
+            description=__doc__.replace('\r\n', '\n').split('\n--snip--\n')[0])
+    parser.add_option('-s', '--save', action="count", dest="save",
+        default=0, help="Save a new background image.")
+    parser.add_option('-f', '--file', dest="fname",
+        help="Save a new background image.")
+ 
+    opts, args  = parser.parse_args()
+ 
+    print opts
+    print args
+    
+    if (opts.save):
+        print "Saving new background Image"
+    elif (opts.fname):
+        print "Running from file (not live kinect)"
+    else:
+        print "no options specified"
