@@ -155,10 +155,10 @@ void sendSdData() {
  */
 void sendRawData(AccelData *data, uint32_t num_samples) {
   DictionaryIterator *iter;
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"sendRawData()");
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"sendRawData() - num_samples=%ld",num_samples);
   app_message_outbox_begin(&iter);
   dict_write_uint8(iter,KEY_DATA_TYPE,(uint8_t)DATA_TYPE_RAW);
-  dict_write_uint32(iter,KEY_NUM_RAW_DATA,num_samples);
+  dict_write_uint32(iter,KEY_NUM_RAW_DATA,(uint32_t)num_samples);
   dict_write_data(iter,KEY_RAW_DATA,(uint8_t*)(data),
 		  num_samples*sizeof(AccelData));
   app_message_outbox_send();

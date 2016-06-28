@@ -1,6 +1,8 @@
 	CHANGELOG
 	=========
 
+	v2.2 (29 June 2016) - Added raw mode that just transfers raw data to phone without processing.
+	
 	v2.1 (11 June 2016) - fixed memory issue that prevented app working on pebble classic. (changed comms.c)
 
 	v2.0 (30 March 2016) - Added user interface - mute and alarm using buttons.
