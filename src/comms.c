@@ -127,7 +127,7 @@ void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reaso
 }
 
 void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
-  APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
+  if (DEBUG) APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
 }
 
 /***************************************************
@@ -135,7 +135,7 @@ void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
  */
 void sendSdData() {
   DictionaryIterator *iter;
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData()");
+  if (DEBUG) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData()");
   app_message_outbox_begin(&iter);
   dict_write_uint8(iter,KEY_DATA_TYPE,(uint8_t)DATA_TYPE_RESULTS);
   dict_write_uint8(iter,KEY_ALARMSTATE,(uint8_t)alarmState);
@@ -147,7 +147,7 @@ void sendSdData() {
   dict_write_data(iter,KEY_SPEC_DATA,(uint8_t*)(&simpleSpec[0]),
 		  10*sizeof(simpleSpec[0]));
   app_message_outbox_send();
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"sent Results");
+  if (DEBUG) APP_LOG(APP_LOG_LEVEL_DEBUG,"sent Results");
 }
 
 /*******************************************************
