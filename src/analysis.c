@@ -22,6 +22,11 @@
   along with pebble_sd.  If not, see <http://www.gnu.org/licenses/>.
 
 */
+
+/*****************************************************************************
+ * FIXME - sample Frequency set from sampleFreq variable, but other calculations
+ *         are still assuming 100 Hz.
+ *****************************************************************************/
 #include <pebble.h>
 /* These undefines prevent SYLT-FFT using assembler code */
 #undef __ARMCC_VERSION
@@ -239,6 +244,6 @@ void analysis_init() {
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Analysis Init:  Subcribing to acceleration data");
   accel_data_service_subscribe(NSAMP,accel_handler);
   // Choose update rate
-  accel_service_set_sampling_rate(SAMP_FREQ_STR);
+  accel_service_set_sampling_rate(sampleFreq);
 }
 
