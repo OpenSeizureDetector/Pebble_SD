@@ -155,14 +155,20 @@ void sendSdData() {
  */
 void sendRawData(AccelData *data, uint32_t num_samples) {
   DictionaryIterator *iter;
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"sendRawData() - num_samples=%ld",num_samples);
+  int16_t accData[75];  // 25 samples, 3 values per sample.
+  for (uint8_t i=0;i<num_samples;i++) {
+    accData[3*i] = data[i].x;
+    accData[3*i+1] = data[i].y;
+    accData[3*i+2] = data[i].z;
+  }
+  if (DEBUG) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendRawData() - num_samples=%ld",num_samples);
   app_message_outbox_begin(&iter);
   dict_write_uint8(iter,KEY_DATA_TYPE,(uint8_t)DATA_TYPE_RAW);
   dict_write_uint32(iter,KEY_NUM_RAW_DATA,(uint32_t)num_samples);
-  dict_write_data(iter,KEY_RAW_DATA,(uint8_t*)(data),
-		  num_samples*sizeof(AccelData));
+  dict_write_data(iter,KEY_RAW_DATA,(uint8_t*)(accData),
+		  3*num_samples*sizeof(accData[0]));
   app_message_outbox_send();
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"sent Results");
+  if (DEBUG) APP_LOG(APP_LOG_LEVEL_DEBUG,"sent Results");
 }
 
 

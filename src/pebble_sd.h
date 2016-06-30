@@ -24,6 +24,9 @@
 */
 
 #include <pebble.h>
+
+#define DEBUG 0
+
 /* COMMS CONFIGURATION */
 #define OUTBOX_SIZE 512   // App Message Outpbox size in bytes
 #define INBOX_SIZE 512    // App Message Inbox size in bytes
