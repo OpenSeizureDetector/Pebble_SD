@@ -53,6 +53,14 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
       // We don't actually do anything here - the following sections
       // process the data and update the settings.
       break;
+    case KEY_DEBUG:
+      APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting DEBUG to %d",
+	      debug = (int)t->value->int16);
+      break;
+    case KEY_DISPLAY_SPECTRUM:
+      APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting DISPLAY_SPECTRUM to %d",
+	      displaySpectrum = (int)t->value->int16);
+      break;
     case KEY_DATA_UPDATE_PERIOD:
       APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting DATA_UPDATE_PERIOD to %d",
 	      dataUpdatePeriod = (int)t->value->int16);
@@ -127,7 +135,7 @@ void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reaso
 }
 
 void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
-  if (DEBUG) APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
+  if (debug) APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
 }
 
 /***************************************************
@@ -135,7 +143,7 @@ void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
  */
 void sendSdData() {
   DictionaryIterator *iter;
-  if (DEBUG) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData()");
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData()");
   app_message_outbox_begin(&iter);
   dict_write_uint8(iter,KEY_DATA_TYPE,(uint8_t)DATA_TYPE_RESULTS);
   dict_write_uint8(iter,KEY_ALARMSTATE,(uint8_t)alarmState);
@@ -147,7 +155,7 @@ void sendSdData() {
   dict_write_data(iter,KEY_SPEC_DATA,(uint8_t*)(&simpleSpec[0]),
 		  10*sizeof(simpleSpec[0]));
   app_message_outbox_send();
-  if (DEBUG) APP_LOG(APP_LOG_LEVEL_DEBUG,"sent Results");
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sent Results");
 }
 
 /*******************************************************
@@ -165,14 +173,14 @@ void sendRawData(AccelData *data, uint32_t num_samples) {
     //accData[3*i+1] = data[i].y;
     //accData[3*i+2] = data[i].z;
   }
-  if (DEBUG) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendRawData() - num_samples=%ld",num_samples);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendRawData() - num_samples=%ld",num_samples);
   app_message_outbox_begin(&iter);
   dict_write_uint8(iter,KEY_DATA_TYPE,(uint8_t)DATA_TYPE_RAW);
   dict_write_uint32(iter,KEY_NUM_RAW_DATA,(uint32_t)num_samples);
   dict_write_data(iter,KEY_RAW_DATA,(uint8_t*)(accData),
 		  num_samples*sizeof(accData[0]));
   app_message_outbox_send();
-  if (DEBUG) APP_LOG(APP_LOG_LEVEL_DEBUG,"sent Results");
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sent Results");
 }
 
 
@@ -187,6 +195,8 @@ void sendSettings() {
   dict_write_uint8(iter,KEY_DATA_TYPE,(uint8_t)DATA_TYPE_SETTINGS);
   dict_write_uint8(iter,KEY_SETTINGS,(uint8_t)1);
   // then the actual settings
+  dict_write_uint32(iter,KEY_DEBUG,(uint32_t)debug);
+  dict_write_uint32(iter,KEY_DISPLAY_SPECTRUM,(uint32_t)displaySpectrum);
   dict_write_uint32(iter,KEY_DATA_UPDATE_PERIOD,(uint32_t)dataUpdatePeriod);
   dict_write_uint32(iter,KEY_SD_MODE,(uint32_t)sdMode);
   dict_write_uint32(iter,KEY_SAMPLE_FREQ,(uint32_t)sampleFreq);

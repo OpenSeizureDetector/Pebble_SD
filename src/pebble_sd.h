@@ -25,8 +25,6 @@
 
 #include <pebble.h>
 
-#define DEBUG 0
-
 /* COMMS CONFIGURATION */
 #define OUTBOX_SIZE 512   // App Message Outpbox size in bytes
 #define INBOX_SIZE 512    // App Message Inbox size in bytes
@@ -37,6 +35,10 @@
 #define NSAMP 512       // number of samples of accelerometer data to collect.
 #define FFT_BITS 9        // 'bits' parameter to fft_forward.
 #define ANALYSIS_PERIOD 3  // number of seconds between fft analysis and screen updates.
+
+// default value for output/display settings
+#define DEBUG_DEFAULT 1
+#define DISPLAY_SPECTRUM_DEFAULT 1
 
 // default values of seizure detector settings
 #define DATA_UPDATE_PERIOD_DEFAULT 20 // number of seconds between sending
@@ -112,6 +114,8 @@
 #define KEY_SAMPLE_FREQ 29
 #define KEY_RAW_DATA 30
 #define KEY_NUM_RAW_DATA 31
+#define KEY_DEBUG 32
+#define KEY_DISPLAY_SPECTRUM 33
 
 // Values of the KEY_DATA_TYPE entry in a message
 #define DATA_TYPE_RESULTS 1   // Analysis Results
@@ -135,6 +139,8 @@
 
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
+extern int debug;            // enable or disable logging output
+extern int displaySpectrum;  // enable or disable spectrum display on watch screen.
 extern int dataUpdatePeriod; // period (in sec) between sending data to the phone
 extern int sdMode;          // Seizure Detector mode 0=normal, 1=raw, 2=filter
 extern int sampleFreq;      // Sample frequency in Hz.

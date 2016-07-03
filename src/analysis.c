@@ -104,7 +104,7 @@ void accel_handler(AccelData *data, uint32_t num_samples) {
   int i;
 
   if (sdMode==SD_MODE_RAW) {
-    if (DEBUG) APP_LOG(APP_LOG_LEVEL_DEBUG,"num_samples=%ld",num_samples);
+    if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"num_samples=%ld",num_samples);
     sendRawData(data,num_samples);
   } else {
     // Add the new data to the accData buffer

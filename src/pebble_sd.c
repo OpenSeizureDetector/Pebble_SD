@@ -30,6 +30,8 @@ extern const PebbleProcessInfo __pbl_app_info;
 
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
+int debug;            // enable or disable logging output
+int displaySpectrum;  // enable or disable spectrum display on watch screen.
 int dataUpdatePeriod; // number of seconds between sending data to the phone.
 int sdMode;          // Seizure Detector mode 0=normal, 1=raw, 2=filter
 int sampleFreq;      // Sample frequency in Hz
@@ -342,7 +344,7 @@ static void window_load(Window *window) {
 					       - SPEC_SIZE }, 
 				   .size = { bounds.size.w, SPEC_SIZE } 
 				 });
-  layer_set_update_proc(spec_layer,draw_spec);
+  if (displaySpectrum) layer_set_update_proc(spec_layer,draw_spec);
   layer_add_child(window_layer, spec_layer);
 
   /* Create text layer for clock display */
@@ -392,6 +394,12 @@ static void window_unload(Window *window) {
 static void init(void) {
   APP_LOG(APP_LOG_LEVEL_DEBUG,"init() - Loading persistent storage variables...");
   // Load data from persistent storage into global variables.
+  debug = DEBUG_DEFAULT;
+  if (persist_exists(KEY_DEBUG))
+    debug = persist_read_int(KEY_DEBUG);
+  displaySpectrum = DISPLAY_SPECTRUM_DEFAULT;
+  if (persist_exists(KEY_DISPLAY_SPECTRUM))
+    displaySpectrum = persist_read_int(KEY_DISPLAY_SPECTRUM);
   dataUpdatePeriod = DATA_UPDATE_PERIOD_DEFAULT;
   if (persist_exists(KEY_DATA_UPDATE_PERIOD))
     dataUpdatePeriod = persist_read_int(KEY_DATA_UPDATE_PERIOD);
@@ -473,6 +481,8 @@ static void init(void) {
  */
 static void deinit(void) {
   // Save settings to persistent storage
+  persist_write_int(KEY_DEBUG,debug);
+  persist_write_int(KEY_DISPLAY_SPECTRUM,displaySpectrum);
   persist_write_int(KEY_DATA_UPDATE_PERIOD,dataUpdatePeriod);
   persist_write_int(KEY_SD_MODE,sdMode);
   persist_write_int(KEY_SAMPLE_FREQ,sampleFreq);
