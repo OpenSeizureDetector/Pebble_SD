@@ -76,7 +76,7 @@ int getAmpl(int nBin) {
  * spectrum for an alarm state.
  */
 int alarm_check() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"Alarm Check nMin=%d, nMax=%d",nMin,nMax);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"Alarm Check nMin=%d, nMax=%d",nMin,nMax);
 
   if (roiPower>alarmThresh && roiRatio>alarmRatioThresh) {
     alarmCount+=ANALYSIS_PERIOD;
@@ -89,7 +89,7 @@ int alarm_check() {
     alarmState = 0;
     alarmCount = 0;
   }
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"alarmState = %d, alarmCount=%d",alarmState,alarmCount);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"alarmState = %d, alarmCount=%d",alarmState,alarmCount);
 
   return(alarmState);
 }
@@ -136,7 +136,7 @@ void check_fall() {
   int i,j;
   int minAcc, maxAcc;
   int fallWindowSamp = (fallWindow*SAMP_FREQ)/1000; // Convert ms to samples.
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"check_fall() - fallWindowSamp=%d",
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"check_fall() - fallWindowSamp=%d",
 	  fallWindowSamp);
   // Move window through sample buffer, checking for fall.
   fallDetected = 0;
@@ -149,14 +149,14 @@ void check_fall() {
       if (accData[i+j]>maxAcc) maxAcc = accData[i+j];
     }
     if ((minAcc<fallThreshMin) && (maxAcc>fallThreshMax)) {
-      APP_LOG(APP_LOG_LEVEL_DEBUG,"check_fall() - minAcc=%d, maxAcc=%d",
+      if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"check_fall() - minAcc=%d, maxAcc=%d",
 	      minAcc,maxAcc);
-      APP_LOG(APP_LOG_LEVEL_DEBUG,"check_fall() - ****FALL DETECTED****");
+      if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"check_fall() - ****FALL DETECTED****");
       fallDetected = 1;
       return;
     }
   }
-  //APP_LOG(APP_LOG_LEVEL_DEBUG,"check_fall() - minAcc=%d, maxAcc=%d",
+  //if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"check_fall() - minAcc=%d, maxAcc=%d",
   //	  minAcc,maxAcc);
 
 }
@@ -172,13 +172,13 @@ void do_analysis() {
   // Calculate the frequency resolution of the output spectrum.
   // Stored as an integer which is 1000 x the frequency resolution in Hz.
   freqRes = (int)(1000*SAMP_FREQ/NSAMP);
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"freqRes=%d",freqRes);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"freqRes=%d",freqRes);
 
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis");
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis");
   // Set the frequency bounds for the analysis in fft output bin numbers.
   nMin = 1000*alarmFreqMin/freqRes;
   nMax = 1000*alarmFreqMax/freqRes;
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis():  nMin=%d, nMax=%d",nMin,nMax);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis():  nMin=%d, nMax=%d",nMin,nMax);
 
   // Populate the fft input array with the accelerometer data 
   for (i=0;i<NSAMP;i++) {
@@ -207,14 +207,14 @@ void do_analysis() {
   }
   maxFreq = (int)(maxLoc*freqRes/1000);
   specPower = specPower/(NSAMP/2);
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"specPower=%ld",specPower);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"specPower=%ld",specPower);
 
   // calculate spectrum power in the region of interest
   for (int i=nMin;i<nMax;i++) {
     roiPower = roiPower + fftdata[i].r;
   }
   roiPower = roiPower/(nMax-nMin);
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"roiPower=%ld",roiPower);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"roiPower=%ld",roiPower);
 
   roiRatio = 10 * roiPower/specPower;
 
