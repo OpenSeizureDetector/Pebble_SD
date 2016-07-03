@@ -39,9 +39,8 @@
 /* GLOBAL VARIABLES */
 
 uint32_t num_samples = NSAMP;
-short accData[NSAMP];   // Using short into for compatibility with integer_fft library.
-fft_complex_t fftdata[NSAMP];   // spectrum calculated by FFT
-short fftResults[NSAMP/2];  // FFT results
+int32_t accData[NSAMP];   // Using short into for compatibility with integer_fft library.
+fft_complex_t* fftData;   // spectrum calculated by FFT
 int simpleSpec[10];   // simplified spectrum - 0-10 Hz
 
 int accDataPos = 0;   // Position in accData of last point in time series.
@@ -65,7 +64,7 @@ int getMagnitude(fft_complex_t c) {
 }
 
 int getAmpl(int nBin) {
-  return fftdata[nBin].r;
+  return fftData[nBin].r;
 }
 
 
@@ -180,38 +179,20 @@ void do_analysis() {
   nMax = 1000*alarmFreqMax/freqRes;
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis():  nMin=%d, nMax=%d",nMin,nMax);
 
-  // Populate the fft input array with the accelerometer data 
-  for (i=0;i<NSAMP;i++) {
-    // FIXME - this needs to recognise that accData is actually a rolling buffer and re-order it too!
-    fftdata[i].r = accData[i];
-    fftdata[i].i = 0;
-  }
-
   // Do the FFT conversion from time to frequency domain.
-  fft_fft(fftdata,FFT_BITS);
-
-  // Look for maximm amplitude, and location of maximum.
-  // Ignore position zero though (DC component)
-  maxVal = getMagnitude(fftdata[1]);
-  maxLoc = 1;
+  fft_fftr((fft_complex_t *)accData,FFT_BITS-1);
+  
   specPower = 0;
   for (i=1;i<NSAMP/2;i++) {
-    // Find absolute value of the imaginary fft output.
-    fftdata[i].r = getMagnitude(fftdata[i]);
-    fftResults[i] = getMagnitude(fftdata[i]);   // Set Global variable.
-    specPower = specPower + fftdata[i].r;
-    if (fftdata[i].r>maxVal) {
-      maxVal = fftdata[i].r;
-      maxLoc = i;
-    }
+    specPower = specPower + getMagnitude(fftData[i]);
   }
-  maxFreq = (int)(maxLoc*freqRes/1000);
   specPower = specPower/(NSAMP/2);
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"specPower=%ld",specPower);
 
   // calculate spectrum power in the region of interest
+  roiPower = 0;
   for (int i=nMin;i<nMax;i++) {
-    roiPower = roiPower + fftdata[i].r;
+    roiPower = roiPower + getMagnitude(fftData[i]);
   }
   roiPower = roiPower/(nMax-nMin);
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"roiPower=%ld",roiPower);
@@ -224,7 +205,7 @@ void do_analysis() {
     int binMax = 1 + 1000*(ifreq+1)/freqRes;
     simpleSpec[ifreq]=0;
     for (int ibin=binMin;ibin<binMax;ibin++) {
-      simpleSpec[ifreq] = simpleSpec[ifreq] + fftdata[ibin].r;
+      simpleSpec[ifreq] = simpleSpec[ifreq] + getMagnitude(fftData[ibin]);
     }
     simpleSpec[ifreq] = simpleSpec[ifreq] / (binMax-binMin);
     
@@ -245,5 +226,8 @@ void analysis_init() {
   accel_data_service_subscribe(NSAMP,accel_handler);
   // Choose update rate
   accel_service_set_sampling_rate(sampleFreq);
+
+  fftData = (fft_complex_t*)accData;
+
 }
 
