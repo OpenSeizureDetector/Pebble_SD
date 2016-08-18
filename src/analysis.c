@@ -4,7 +4,7 @@
 
   See http://openseizuredetector.org for more information.
 
-  Copyright Graham Jones, 2015.
+  Copyright Graham Jones, 2015, 2016.
 
   This file is part of pebble_sd.
 
