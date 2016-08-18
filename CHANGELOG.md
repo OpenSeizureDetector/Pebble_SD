@@ -2,6 +2,8 @@
 	=========
 
 	v2.3 (28 July 2016) - Removed redundant data manipulation to reduce battery consumption.
+	Added ability to change analysis period from
+	default 5 second period (requires Android_Pebble_SD v2.0.7 or higher)
 
 	v2.2 (29 June 2016) - Added raw mode that just transfers raw data to phone without processing.
 	
