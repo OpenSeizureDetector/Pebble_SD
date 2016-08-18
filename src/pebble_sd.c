@@ -35,6 +35,7 @@ int displaySpectrum;  // enable or disable spectrum display on watch screen.
 int dataUpdatePeriod; // number of seconds between sending data to the phone.
 int sdMode;          // Seizure Detector mode 0=normal, 1=raw, 2=filter
 int sampleFreq;      // Sample frequency in Hz
+int analysisPeriod;  // Analysis period in seconds.
 int alarmFreqMin;    // Bin number of lower boundary of region of interest
 int alarmFreqMax;    // Bin number of higher boundary of region of interest
 int warnTime;        // number of seconds above threshold to raise warning
@@ -409,6 +410,9 @@ static void init(void) {
   sampleFreq = SAMPLE_FREQ_DEFAULT;
   if (persist_exists(KEY_SAMPLE_FREQ))
     sampleFreq = persist_read_int(KEY_SAMPLE_FREQ);
+  analysisPeriod = ANALYSIS_PERIOD_DEFAULT;
+  if (persist_exists(KEY_ANALYSIS_PERIOD))
+    analysisPeriod = persist_read_int(KEY_ANALYSIS_PERIOD);
   alarmFreqMin = ALARM_FREQ_MIN_DEFAULT;
   if (persist_exists(KEY_ALARM_FREQ_MIN))
     alarmFreqMin = persist_read_int(KEY_ALARM_FREQ_MIN);
@@ -486,6 +490,7 @@ static void deinit(void) {
   persist_write_int(KEY_DATA_UPDATE_PERIOD,dataUpdatePeriod);
   persist_write_int(KEY_SD_MODE,sdMode);
   persist_write_int(KEY_SAMPLE_FREQ,sampleFreq);
+  persist_write_int(KEY_ANALYSIS_PERIOD,analysisPeriod);
   persist_write_int(KEY_ALARM_FREQ_MIN,alarmFreqMin);
   persist_write_int(KEY_ALARM_FREQ_MAX,alarmFreqMax);
   persist_write_int(KEY_WARN_TIME,warnTime);

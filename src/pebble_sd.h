@@ -4,7 +4,7 @@
 
   See http://openseizuredetector.org for more information.
 
-  Copyright Graham Jones, 2015.
+  Copyright Graham Jones, 2015, 2016.
 
   This file is part of pebble_sd.
 
@@ -47,6 +47,7 @@
                             // condition is detected.
 #define SD_MODE_DEFAULT        0  // FFT Mode
 #define SAMPLE_FREQ_DEFAULT    100 // Hz
+#define ANALYSIS_PERIOD_DEFAULT 5  // seconds
 #define ALARM_FREQ_MIN_DEFAULT 5  // Hz
 #define ALARM_FREQ_MAX_DEFAULT 10 // Hz
 #define WARN_TIME_DEFAULT      5 // sec
@@ -116,6 +117,7 @@
 #define KEY_NUM_RAW_DATA 31
 #define KEY_DEBUG 32
 #define KEY_DISPLAY_SPECTRUM 33
+#define KEY_ANALYSIS_PERIOD 34
 
 // Values of the KEY_DATA_TYPE entry in a message
 #define DATA_TYPE_RESULTS 1   // Analysis Results
@@ -144,6 +146,7 @@ extern int displaySpectrum;  // enable or disable spectrum display on watch scre
 extern int dataUpdatePeriod; // period (in sec) between sending data to the phone
 extern int sdMode;          // Seizure Detector mode 0=normal, 1=raw, 2=filter
 extern int sampleFreq;      // Sample frequency in Hz.
+extern int analysisPeriod;  // Analysis period in seconds.
 extern int alarmFreqMin;    // Minimum frequency (in Hz) for analysis region of interest.
 extern int alarmFreqMax;    // Maximum frequency (in Hz) for analysis region of interest.
 extern int nMin, nMax;      // Bin number of region of interest boundaries.

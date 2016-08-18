@@ -1,6 +1,9 @@
 	CHANGELOG
 	=========
 
+	v2.4 (18 Aug 2016) - Added ability to change analysis period from
+	default 5 second period (requires Android_Pebble_SD v2.0.7 or higher)
+	
 	v2.2 (29 June 2016) - Added raw mode that just transfers raw data to phone without processing.
 	
 	v2.1 (11 June 2016) - fixed memory issue that prevented app working on pebble classic. (changed comms.c)
