@@ -29,18 +29,21 @@
 #define OUTBOX_SIZE 512   // App Message Outpbox size in bytes
 #define INBOX_SIZE 512    // App Message Inbox size in bytes
 
+#include "pebble_process_info.h"
+extern const PebbleProcessInfo __pbl_app_info;
+
 /* ANALYSIS CONFIGURATION */
-#define SAMP_FREQ 100    // Sample Frequency in Hz
-#define SAMP_FREQ_STR ACCEL_SAMPLING_100HZ  // String to pass to sampling system.
-#define NSAMP_MAX 512   // maximum number of samples of accelerometer data to collect.
-#define FFT_BITS 9        // 'bits' parameter to fft_forward.
-#define ANALYSIS_PERIOD 3  // number of seconds between fft analysis and screen updates.
 
 // default value for output/display settings
 #define DEBUG_DEFAULT 1
 #define DISPLAY_SPECTRUM_DEFAULT 1
 
 // default values of seizure detector settings
+#define SAMPLE_PERIOD_DEFAULT 5  // sec
+#define SAMPLE_FREQ_DEFAULT 100  // Hz
+#define NSAMP_MAX 512       // maximum number of samples of accelerometer
+                            // data to collect (used to size arrays).
+#define FREQ_CUTOFF_DEFAULT 12 // Hz - frequency above which movement is ignored.
 #define DATA_UPDATE_PERIOD_DEFAULT 20 // number of seconds between sending
                             //data to phone
                             // note data is sent instantaneously if an alarm
@@ -48,7 +51,7 @@
 #define SD_MODE_DEFAULT        0  // FFT Mode
 #define SAMPLE_FREQ_DEFAULT    100 // Hz
 #define ANALYSIS_PERIOD_DEFAULT 5  // seconds
-#define ALARM_FREQ_MIN_DEFAULT 5  // Hz
+#define ALARM_FREQ_MIN_DEFAULT 3  // Hz
 #define ALARM_FREQ_MAX_DEFAULT 10 // Hz
 #define WARN_TIME_DEFAULT      5 // sec
 #define ALARM_TIME_DEFAULT     10 // sec
@@ -118,6 +121,10 @@
 #define KEY_DEBUG 32
 #define KEY_DISPLAY_SPECTRUM 33
 #define KEY_ANALYSIS_PERIOD 34
+#define KEY_SAMPLE_FREQ 35
+#define KEY_VERSION_MAJOR 36
+#define KEY_VERSION_MINOR 37
+#define KEY_FREQ_CUTOFF 38
 
 // Values of the KEY_DATA_TYPE entry in a message
 #define DATA_TYPE_RESULTS 1   // Analysis Results
@@ -143,10 +150,17 @@
 // Settings (obtained from default constants or persistent storage)
 extern int debug;            // enable or disable logging output
 extern int displaySpectrum;  // enable or disable spectrum display on watch screen.
+extern int samplePeriod;    // sample period in seconds.
+extern int sampleFreq;      // sampling frequency in Hz
+                            //    (must be one of 10,25,50 or 100)
+extern int freqCutoff;      // frequency above which movement is ignored.
+extern int nFreqCutoff;     // bin number of cutoff frequency.
+extern int nSamp;           // number of samples in sampling period
+                            //    (rounded up to a power of 2)
+extern int fftBits;          // Size of fft data array - nSamp = 2^(fftBits)
 extern int dataUpdatePeriod; // period (in sec) between sending data to the phone
 extern int sdMode;          // Seizure Detector mode 0=normal, 1=raw, 2=filter
 extern int sampleFreq;      // Sample frequency in Hz.
-extern int analysisPeriod;  // Analysis period in seconds.
 extern int alarmFreqMin;    // Minimum frequency (in Hz) for analysis region of interest.
 extern int alarmFreqMax;    // Maximum frequency (in Hz) for analysis region of interest.
 extern int nMin, nMax;      // Bin number of region of interest boundaries.
@@ -159,6 +173,7 @@ extern int alarmRatioThresh; // 10x Ratio of ROI power to Spectrum power to rais
 extern int accDataPos;   // Position in accData of last point in time series.
 extern int accDataFull;  // Flag so we know when we have a complete buffer full
                       // of data.
+//extern short fftResults[NSAMP_MAX/2];  // FFT results
 extern int simpleSpec[10];  // Simplified spectrum - 1 to 10 Hz bins.
 extern AccelData latestAccelData;  // Latest accelerometer readings received.
 extern int maxVal;       // Peak amplitude in spectrum.

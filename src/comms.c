@@ -35,6 +35,8 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
   // Get the first pair
   Tuple *t = dict_read_first(iterator);
 
+  int settingsChanged = 0;
+  
   // Process all pairs present
   while(t != NULL) {
     // Process this pair's key
@@ -60,6 +62,20 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
     case KEY_DISPLAY_SPECTRUM:
       APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting DISPLAY_SPECTRUM to %d",
 	      displaySpectrum = (int)t->value->int16);
+    case KEY_SAMPLE_PERIOD:
+      APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting SAMPLE_PERIOD to %d",
+	      samplePeriod = (int)t->value->int16);
+      settingsChanged = 1;
+      break;
+    case KEY_SAMPLE_FREQ:
+      APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting SAMPLE_FREQ to %d",
+	      sampleFreq = (int)t->value->int16);
+      settingsChanged = 1;
+      break;
+    case KEY_FREQ_CUTOFF:
+      APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting FREQ_CUTOFF to %d",
+	      freqCutoff = (int)t->value->int16);
+      settingsChanged = 1;
       break;
     case KEY_DATA_UPDATE_PERIOD:
       APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting DATA_UPDATE_PERIOD to %d",
@@ -124,7 +140,12 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
     }
     // Get next pair, if any
     t = dict_read_next(iterator);
-  }}
+  }
+  if (settingsChanged) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG,"Accelerometer Settings Changed - resetting");
+    analysis_init();
+  }
+}
 
 void inbox_dropped_callback(AppMessageResult reason, void *context) {
   APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
@@ -197,6 +218,15 @@ void sendSettings() {
   // then the actual settings
   dict_write_uint32(iter,KEY_DEBUG,(uint32_t)debug);
   dict_write_uint32(iter,KEY_DISPLAY_SPECTRUM,(uint32_t)displaySpectrum);
+  // first the app version number
+  dict_write_uint8(iter,KEY_VERSION_MAJOR,
+		   (uint8_t)__pbl_app_info.process_version.major);
+  dict_write_uint8(iter,KEY_VERSION_MINOR,
+		   (uint8_t)__pbl_app_info.process_version.minor);
+  // then the settings
+  dict_write_uint32(iter,KEY_SAMPLE_PERIOD,(uint32_t)samplePeriod);
+  dict_write_uint32(iter,KEY_SAMPLE_FREQ,(uint32_t)sampleFreq);
+  dict_write_uint32(iter,KEY_FREQ_CUTOFF,(uint32_t)freqCutoff);
   dict_write_uint32(iter,KEY_DATA_UPDATE_PERIOD,(uint32_t)dataUpdatePeriod);
   dict_write_uint32(iter,KEY_SD_MODE,(uint32_t)sdMode);
   dict_write_uint32(iter,KEY_SAMPLE_FREQ,(uint32_t)sampleFreq);

@@ -4,7 +4,7 @@
 
   See http://openseizuredetector.org.uk for more information.
 
-  Copyright Graham Jones, 2015, 2016.
+  Copyright Graham Jones, 2015, 2016
 
   This file is part of pebble_sd.
 
@@ -25,17 +25,22 @@
 #include <pebble.h>
 
 #include "pebble_sd.h"
-#include "pebble_process_info.h"
-extern const PebbleProcessInfo __pbl_app_info;
 
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
 int debug;            // enable or disable logging output
 int displaySpectrum;  // enable or disable spectrum display on watch screen.
+int sampleFreq;      // Sampling frequency in Hz (must be one of 10,25,50 or 100)
+int freqCutoff;      // Frequency above which movement is ignored.
+int nFreqCutoff;     // Bin number of cutoff frequency.
+int samplePeriod;    // Sample period in seconds
+int nSamp;           // number of samples in sampling period
+                     //  (rounded up to a power of 2)
+int fftBits;         // size of fft data array (nSamp = 2^(fftBits))
+
 int dataUpdatePeriod; // number of seconds between sending data to the phone.
 int sdMode;          // Seizure Detector mode 0=normal, 1=raw, 2=filter
 int sampleFreq;      // Sample frequency in Hz
-int analysisPeriod;  // Analysis period in seconds.
 int alarmFreqMin;    // Bin number of lower boundary of region of interest
 int alarmFreqMax;    // Bin number of higher boundary of region of interest
 int warnTime;        // number of seconds above threshold to raise warning
@@ -212,8 +217,14 @@ void draw_spec(Layer *sl, GContext *ctx) {
   /* Now draw the spectrum */
   for (i=0;i<bounds.size.w-1;i++) {
     p0 = GPoint(i,bounds.size.h-1);
-    //h = bounds.size.h*accData[i]/2000;
-    h = bounds.size.h*getAmpl(i)/1000.;
+    if (i<=nFreqCutoff) {
+      h = bounds.size.h*getAmpl(i)/1000.;
+      APP_LOG(APP_LOG_LEVEL_DEBUG,"i = %d, h=%d",i,h);
+    }
+    else {
+      h = bounds.size.h/4;
+      //APP_LOG(APP_LOG_LEVEL_DEBUG,"Out of Range - i = %d, h=%d",i,h);
+    }
     p1 = GPoint(i,bounds.size.h - h);
     graphics_draw_line(ctx,p0,p1);
   }
@@ -401,6 +412,15 @@ static void init(void) {
   displaySpectrum = DISPLAY_SPECTRUM_DEFAULT;
   if (persist_exists(KEY_DISPLAY_SPECTRUM))
     displaySpectrum = persist_read_int(KEY_DISPLAY_SPECTRUM);
+  samplePeriod = SAMPLE_PERIOD_DEFAULT;
+  if (persist_exists(KEY_SAMPLE_PERIOD))
+    samplePeriod = persist_read_int(KEY_SAMPLE_PERIOD);
+  sampleFreq = SAMPLE_FREQ_DEFAULT;
+  if (persist_exists(KEY_SAMPLE_FREQ))
+    sampleFreq = persist_read_int(KEY_SAMPLE_FREQ);
+  freqCutoff = FREQ_CUTOFF_DEFAULT;
+  if (persist_exists(KEY_FREQ_CUTOFF))
+    freqCutoff = persist_read_int(KEY_FREQ_CUTOFF);
   dataUpdatePeriod = DATA_UPDATE_PERIOD_DEFAULT;
   if (persist_exists(KEY_DATA_UPDATE_PERIOD))
     dataUpdatePeriod = persist_read_int(KEY_DATA_UPDATE_PERIOD);
@@ -410,9 +430,6 @@ static void init(void) {
   sampleFreq = SAMPLE_FREQ_DEFAULT;
   if (persist_exists(KEY_SAMPLE_FREQ))
     sampleFreq = persist_read_int(KEY_SAMPLE_FREQ);
-  analysisPeriod = ANALYSIS_PERIOD_DEFAULT;
-  if (persist_exists(KEY_ANALYSIS_PERIOD))
-    analysisPeriod = persist_read_int(KEY_ANALYSIS_PERIOD);
   alarmFreqMin = ALARM_FREQ_MIN_DEFAULT;
   if (persist_exists(KEY_ALARM_FREQ_MIN))
     alarmFreqMin = persist_read_int(KEY_ALARM_FREQ_MIN);
@@ -467,7 +484,7 @@ static void init(void) {
   // Detect button clicks
   window_set_click_config_provider(window, click_config_provider);
   
-  // Initialise analysis of accelerometer data.
+
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Initialising Analysis System....");
   analysis_init();
 
@@ -487,10 +504,11 @@ static void deinit(void) {
   // Save settings to persistent storage
   persist_write_int(KEY_DEBUG,debug);
   persist_write_int(KEY_DISPLAY_SPECTRUM,displaySpectrum);
+  persist_write_int(KEY_SAMPLE_PERIOD,samplePeriod);
+  persist_write_int(KEY_SAMPLE_FREQ,sampleFreq);
+  persist_write_int(KEY_FREQ_CUTOFF,freqCutoff);
   persist_write_int(KEY_DATA_UPDATE_PERIOD,dataUpdatePeriod);
   persist_write_int(KEY_SD_MODE,sdMode);
-  persist_write_int(KEY_SAMPLE_FREQ,sampleFreq);
-  persist_write_int(KEY_ANALYSIS_PERIOD,analysisPeriod);
   persist_write_int(KEY_ALARM_FREQ_MIN,alarmFreqMin);
   persist_write_int(KEY_ALARM_FREQ_MAX,alarmFreqMax);
   persist_write_int(KEY_WARN_TIME,warnTime);

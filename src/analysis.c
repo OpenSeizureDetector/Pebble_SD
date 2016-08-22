@@ -23,10 +23,6 @@
 
 */
 
-/*****************************************************************************
- * FIXME - sample Frequency set from sampleFreq variable, but other calculations
- *         are still assuming 100 Hz.
- *****************************************************************************/
 #include <pebble.h>
 /* These undefines prevent SYLT-FFT using assembler code */
 #undef __ARMCC_VERSION
@@ -37,10 +33,11 @@
 
 
 /* GLOBAL VARIABLES */
+uint32_t num_samples = NSAMP_MAX;
+short accData[NSAMP_MAX];   // Using short into for compatibility with integer_fft library.
+fft_complex_t fftdata[NSAMP_MAX];   // spectrum calculated by FFT
+short fftResults[NSAMP_MAX/2];  // FFT results
 
-uint32_t num_samples = NSAMP;
-int32_t accData[NSAMP];   // Using short into for compatibility with integer_fft library.
-fft_complex_t* fftData;   // spectrum calculated by FFT
 int simpleSpec[10];   // simplified spectrum - 0-10 Hz
 
 int accDataPos = 0;   // Position in accData of last point in time series.
@@ -78,7 +75,7 @@ int alarm_check() {
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"Alarm Check nMin=%d, nMax=%d",nMin,nMax);
 
   if (roiPower>alarmThresh && roiRatio>alarmRatioThresh) {
-    alarmCount+=ANALYSIS_PERIOD;
+    alarmCount+=samplePeriod;
     if (alarmCount>alarmTime) {
       alarmState = 2;
     } else if (alarmCount>warnTime) {
@@ -102,6 +99,7 @@ int alarm_check() {
 void accel_handler(AccelData *data, uint32_t num_samples) {
   int i;
 
+<<<<<<< HEAD
   if (sdMode==SD_MODE_RAW) {
     if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"num_samples=%ld",num_samples);
     sendRawData(data,num_samples);
@@ -109,7 +107,7 @@ void accel_handler(AccelData *data, uint32_t num_samples) {
     // Add the new data to the accData buffer
     for (i=0;i<(int)num_samples;i++) {
       // Wrap around the buffer if necessary
-      if (accDataPos>=NSAMP) { 
+      if (accDataPos>=nSamp) { 
 	accDataPos = 0;
 	accDataFull = 1;
 	break;
@@ -134,12 +132,13 @@ void accel_handler(AccelData *data, uint32_t num_samples) {
 void check_fall() {
   int i,j;
   int minAcc, maxAcc;
-  int fallWindowSamp = (fallWindow*SAMP_FREQ)/1000; // Convert ms to samples.
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"check_fall() - fallWindowSamp=%d",
+
+  int fallWindowSamp = (fallWindow*sampleFreq)/1000; // Convert ms to samples.
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"check_fall() - fallWindowSamp=%d",
 	  fallWindowSamp);
   // Move window through sample buffer, checking for fall.
   fallDetected = 0;
-  for (i=0;i<NSAMP-fallWindowSamp;i++) {  // i = window start point
+  for (i=0;i<nSamp-fallWindowSamp;i++) {  // i = window start point
     // Find max and min acceleration within window.
     minAcc = accData[i];
     maxAcc = accData[i];
@@ -167,26 +166,58 @@ void check_fall() {
  */
 void do_analysis() {
   int i;
-
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis");
   // Calculate the frequency resolution of the output spectrum.
   // Stored as an integer which is 1000 x the frequency resolution in Hz.
-  freqRes = (int)(1000*SAMP_FREQ/NSAMP);
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"freqRes=%d",freqRes);
 
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis");
+  freqRes = (int)(1000*sampleFreq/nSamp);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"T=%d ms, freqRes=%d Hz/bin",1000*nSamp/sampleFreq,freqRes);
   // Set the frequency bounds for the analysis in fft output bin numbers.
   nMin = 1000*alarmFreqMin/freqRes;
   nMax = 1000*alarmFreqMax/freqRes;
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis():  nMin=%d, nMax=%d",nMin,nMax);
+  // Calculate the bin number of the cutoff frequency
+  nFreqCutoff = (int)(1000*freqCutoff/freqRes);  
+
+  if (debug) 
+    APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis():  nMin=%d, nMax=%d, nFreqCutoff=%d",
+	    nMin,nMax,nFreqCutoff);
+
+  // Populate the fft input array with the accelerometer data 
+  for (i=0;i<nSamp;i++) {
+    // FIXME - this needs to recognise that accData is actually a rolling buffer and re-order it too!
+    fftdata[i].r = accData[i];
+    fftdata[i].i = 0;
+  }
 
   // Do the FFT conversion from time to frequency domain.
-  fft_fftr((fft_complex_t *)accData,FFT_BITS-1);
-  
+  fft_fft(fftdata,fftBits);
+  // Do the FFT conversion from time to frequency domain.
+  //fft_fftr((fft_complex_t *)accData,FFT_BITS-1);
+
+  // Look for maximm amplitude, and location of maximum.
+  // Ignore position zero though (DC component)
+  maxVal = getMagnitude(fftdata[1]);
+  maxLoc = 1;
   specPower = 0;
-  for (i=1;i<NSAMP/2;i++) {
-    specPower = specPower + getMagnitude(fftData[i]);
+  for (i=1;i<nSamp/2;i++) {
+    // Find absolute value of the imaginary fft output.
+    if (i<=nFreqCutoff) {
+      fftdata[i].r = getMagnitude(fftdata[i]);
+      fftResults[i] = getMagnitude(fftdata[i]);   // Set Global variable.
+      specPower = specPower + fftdata[i].r;
+      if (fftdata[i].r>maxVal) {
+	maxVal = fftdata[i].r;
+	maxLoc = i;
+      }
+    } else {
+        if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"i = %d, zeroing data above cutoff frequency",i);
+      fftdata[i].r = 0;
+      fftResults[i] = 0;
+    }
   }
-  specPower = specPower/(NSAMP/2);
+  maxFreq = (int)(maxLoc*freqRes/1000);
+  specPower = specPower/(nSamp/2);
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"specPower=%ld",specPower);
 
   // calculate spectrum power in the region of interest
@@ -221,13 +252,44 @@ void do_analysis() {
 }
 
 void analysis_init() {
+  int nsInit;  // initial number of samples per period, before rounding
+  int i,ns;
+  // Zero all data arrays:
+  for (i = 0; i<NSAMP_MAX; i++) {
+    accData[i] = 0;
+    fftdata[i].r = 0;
+    fftdata[i].i = 0;
+  }
+  for (i = 0; i<NSAMP_MAX/2; i++) {
+    fftResults[i] = 0;
+  }
+
+  // Initialise analysis of accelerometer data.
+  // get number of samples per period, and round up to a power of 2
+  nsInit = samplePeriod * sampleFreq;
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG, "samplePeriod=%d, sampleFreq=%d - nsInit=%d",
+	  samplePeriod,sampleFreq,nsInit);
+
+  for (i=0;i<1000;i++) {
+    ns = 2<<i;
+      if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG, "i=%d  ns=%d nsInit = %d",
+	    i,ns,nsInit);
+    if (ns >= nsInit) {
+      nSamp = ns;
+      fftBits = i;
+      break;
+    }
+  }
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG, "nSamp rounded up to %d",
+		     nSamp);
+
+  
   /* Subscribe to acceleration data service */
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"Analysis Init:  Subcribing to acceleration data");
-  accel_data_service_subscribe(NSAMP,accel_handler);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"Analysis Init:  Subcribing to acceleration data at frequency %d Hz",sampleFreq);
+  accel_data_service_subscribe(25,accel_handler);
   // Choose update rate
   accel_service_set_sampling_rate(sampleFreq);
 
-  fftData = (fft_complex_t*)accData;
-
+  //fftData = (fft_complex_t*)accData;
 }
 
