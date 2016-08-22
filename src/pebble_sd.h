@@ -32,7 +32,7 @@
 /* ANALYSIS CONFIGURATION */
 #define SAMP_FREQ 100    // Sample Frequency in Hz
 #define SAMP_FREQ_STR ACCEL_SAMPLING_100HZ  // String to pass to sampling system.
-#define NSAMP 512       // number of samples of accelerometer data to collect.
+#define NSAMP_MAX 512   // maximum number of samples of accelerometer data to collect.
 #define FFT_BITS 9        // 'bits' parameter to fft_forward.
 #define ANALYSIS_PERIOD 3  // number of seconds between fft analysis and screen updates.
 
