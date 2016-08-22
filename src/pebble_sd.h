@@ -120,11 +120,10 @@ extern const PebbleProcessInfo __pbl_app_info;
 #define KEY_NUM_RAW_DATA 31
 #define KEY_DEBUG 32
 #define KEY_DISPLAY_SPECTRUM 33
-#define KEY_ANALYSIS_PERIOD 34
-#define KEY_SAMPLE_FREQ 35
-#define KEY_VERSION_MAJOR 36
-#define KEY_VERSION_MINOR 37
-#define KEY_FREQ_CUTOFF 38
+#define KEY_SAMPLE_PERIOD 34
+#define KEY_VERSION_MAJOR 35
+#define KEY_VERSION_MINOR 36
+#define KEY_FREQ_CUTOFF 37
 
 // Values of the KEY_DATA_TYPE entry in a message
 #define DATA_TYPE_RESULTS 1   // Analysis Results
@@ -173,7 +172,7 @@ extern int alarmRatioThresh; // 10x Ratio of ROI power to Spectrum power to rais
 extern int accDataPos;   // Position in accData of last point in time series.
 extern int accDataFull;  // Flag so we know when we have a complete buffer full
                       // of data.
-//extern short fftResults[NSAMP_MAX/2];  // FFT results
+extern short fftResults[NSAMP_MAX/2];  // FFT results
 extern int simpleSpec[10];  // Simplified spectrum - 1 to 10 Hz bins.
 extern AccelData latestAccelData;  // Latest accelerometer readings received.
 extern int maxVal;       // Peak amplitude in spectrum.

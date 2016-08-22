@@ -34,8 +34,8 @@
 
 /* GLOBAL VARIABLES */
 uint32_t num_samples = NSAMP_MAX;
-short accData[NSAMP_MAX];   // Using short into for compatibility with integer_fft library.
-fft_complex_t fftdata[NSAMP_MAX];   // spectrum calculated by FFT
+int32_t accData[NSAMP_MAX];   
+fft_complex_t *fftData;   // spectrum calculated by FFT
 short fftResults[NSAMP_MAX/2];  // FFT results
 
 int simpleSpec[10];   // simplified spectrum - 0-10 Hz
@@ -99,7 +99,6 @@ int alarm_check() {
 void accel_handler(AccelData *data, uint32_t num_samples) {
   int i;
 
-<<<<<<< HEAD
   if (sdMode==SD_MODE_RAW) {
     if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"num_samples=%ld",num_samples);
     sendRawData(data,num_samples);
@@ -172,51 +171,37 @@ void do_analysis() {
 
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis");
   freqRes = (int)(1000*sampleFreq/nSamp);
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"T=%d ms, freqRes=%d Hz/bin",1000*nSamp/sampleFreq,freqRes);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"T=%d ms, freqRes=%d Hz/(1000 bins)",
+		     1000*nSamp/sampleFreq,freqRes);
   // Set the frequency bounds for the analysis in fft output bin numbers.
-  nMin = 1000*alarmFreqMin/freqRes;
-  nMax = 1000*alarmFreqMax/freqRes;
+  nMin = (int)(1000*alarmFreqMin/freqRes);
+  nMax = (int)(1000*alarmFreqMax/freqRes);
   // Calculate the bin number of the cutoff frequency
   nFreqCutoff = (int)(1000*freqCutoff/freqRes);  
 
-  if (debug) 
-    APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis():  nMin=%d, nMax=%d, nFreqCutoff=%d",
-	    nMin,nMax,nFreqCutoff);
-
-  // Populate the fft input array with the accelerometer data 
-  for (i=0;i<nSamp;i++) {
-    // FIXME - this needs to recognise that accData is actually a rolling buffer and re-order it too!
-    fftdata[i].r = accData[i];
-    fftdata[i].i = 0;
-  }
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis():  nMin=%d, nMax=%d, nFreqCutoff=%d, fftBits=%d, nSamp=%d",
+		     nMin,nMax,nFreqCutoff,fftBits,nSamp);
 
   // Do the FFT conversion from time to frequency domain.
-  fft_fft(fftdata,fftBits);
-  // Do the FFT conversion from time to frequency domain.
-  //fft_fftr((fft_complex_t *)accData,FFT_BITS-1);
+  // The output is stored in accData.  fftData is a pointer to accData.
+  fft_fftr((fft_complex_t *)accData,fftBits);
 
-  // Look for maximm amplitude, and location of maximum.
+
   // Ignore position zero though (DC component)
-  maxVal = getMagnitude(fftdata[1]);
-  maxLoc = 1;
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"Calculating specPower - nSamp=%d",nSamp);
   specPower = 0;
   for (i=1;i<nSamp/2;i++) {
     // Find absolute value of the imaginary fft output.
     if (i<=nFreqCutoff) {
-      fftdata[i].r = getMagnitude(fftdata[i]);
-      fftResults[i] = getMagnitude(fftdata[i]);   // Set Global variable.
-      specPower = specPower + fftdata[i].r;
-      if (fftdata[i].r>maxVal) {
-	maxVal = fftdata[i].r;
-	maxLoc = i;
-      }
+      specPower = specPower + getMagnitude(fftData[i]);
     } else {
-        if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"i = %d, zeroing data above cutoff frequency",i);
-      fftdata[i].r = 0;
-      fftResults[i] = 0;
+      //if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"i = %d, zeroing data above cutoff frequency",i);
+      fftData[i].r = 0;
     }
+    // fftResults is used by UI to display spectrum.
+    fftResults[i] = getMagnitude(fftData[i]);
   }
-  maxFreq = (int)(maxLoc*freqRes/1000);
+  // specPower is average power per bin for whole spectrum.
   specPower = specPower/(nSamp/2);
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"specPower=%ld",specPower);
 
@@ -225,6 +210,7 @@ void do_analysis() {
   for (int i=nMin;i<nMax;i++) {
     roiPower = roiPower + getMagnitude(fftData[i]);
   }
+  // roiPower is average power per bin within ROI.
   roiPower = roiPower/(nMax-nMin);
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"roiPower=%ld",roiPower);
 
@@ -257,11 +243,6 @@ void analysis_init() {
   // Zero all data arrays:
   for (i = 0; i<NSAMP_MAX; i++) {
     accData[i] = 0;
-    fftdata[i].r = 0;
-    fftdata[i].i = 0;
-  }
-  for (i = 0; i<NSAMP_MAX/2; i++) {
-    fftResults[i] = 0;
   }
 
   // Initialise analysis of accelerometer data.
@@ -290,6 +271,6 @@ void analysis_init() {
   // Choose update rate
   accel_service_set_sampling_rate(sampleFreq);
 
-  //fftData = (fft_complex_t*)accData;
+  fftData = (fft_complex_t*)accData;
 }
 

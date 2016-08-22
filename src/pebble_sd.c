@@ -218,8 +218,9 @@ void draw_spec(Layer *sl, GContext *ctx) {
   for (i=0;i<bounds.size.w-1;i++) {
     p0 = GPoint(i,bounds.size.h-1);
     if (i<=nFreqCutoff) {
-      h = bounds.size.h*getAmpl(i)/1000.;
-      APP_LOG(APP_LOG_LEVEL_DEBUG,"i = %d, h=%d",i,h);
+      //h = bounds.size.h*getAmpl(i)/1000.;
+      h = bounds.size.h * fftResults[i]/1000.;
+      //APP_LOG(APP_LOG_LEVEL_DEBUG,"draw spectrum - i = %d, h=%d",i,h);
     }
     else {
       h = bounds.size.h/4;
