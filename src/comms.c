@@ -62,6 +62,7 @@ void inbox_received_callback(DictionaryIterator *iterator, void *context) {
     case KEY_DISPLAY_SPECTRUM:
       APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting DISPLAY_SPECTRUM to %d",
 	      displaySpectrum = (int)t->value->int16);
+      break;
     case KEY_SAMPLE_PERIOD:
       APP_LOG(APP_LOG_LEVEL_INFO,"Phone Setting SAMPLE_PERIOD to %d",
 	      samplePeriod = (int)t->value->int16);
