@@ -164,7 +164,7 @@ void check_fall() {
  * Called from clock_tick_handler().
  */
 void do_analysis() {
-  int i;
+  int i,n;
   APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis");
   // Calculate the frequency resolution of the output spectrum.
   // Stored as an integer which is 1000 x the frequency resolution in Hz.
@@ -176,11 +176,34 @@ void do_analysis() {
   // Set the frequency bounds for the analysis in fft output bin numbers.
   nMin = (int)(1000*alarmFreqMin/freqRes);
   nMax = (int)(1000*alarmFreqMax/freqRes);
+
+  // Set frequency bounds for multi-ROI mode
+  // ROI 0 is the whole ROI
+  nMins[0] = nMin;
+  nMaxs[0] = nMax;
+
+  // ROI 1 is the lower half
+  nMins[1] = nMin;
+  nMaxs[1] = (nMin+nMax)/2;
+
+  // ROI 2 is the upper half
+  nMins[2] = (nMin+nMax)/2;
+  nMaxs[2] = nMax;
+
+  // ROI 3 is the middle half
+  nMins[3] = nMin + (nMax-nMin)/4;
+  nMaxs[3] = nMax - (nMax-nMin)/4;
+  
   // Calculate the bin number of the cutoff frequency
   nFreqCutoff = (int)(1000*freqCutoff/freqRes);  
 
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis():  nMin=%d, nMax=%d, nFreqCutoff=%d, fftBits=%d, nSamp=%d",
 		     nMin,nMax,nFreqCutoff,fftBits,nSamp);
+
+  if (debug) for (i=0;i<=3;i++) {
+      APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis(): nMins[%d]=%d, nMaxs[%d]=%d",
+	      i,nMins[i],i,nMaxs[i]);
+    }
 
   // Do the FFT conversion from time to frequency domain.
   // The output is stored in accData.  fftData is a pointer to accData.
@@ -213,8 +236,22 @@ void do_analysis() {
   // roiPower is average power per bin within ROI.
   roiPower = roiPower/(nMax-nMin);
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"roiPower=%ld",roiPower);
-
   roiRatio = 10 * roiPower/specPower;
+
+  // calculate spectrum power in each of the regions of interest
+  // for multi-ROI mode.
+  roiPowers[0] = roiPower;  
+  for (n=1;n<=3;n++) {
+    roiPowers[n]=0;
+    for (int i=nMins[n];i<nMaxs[n];i++) {
+      roiPowers[n] = roiPowers[n] + getMagnitude(fftData[i]);
+    }
+    // roiPower is average power per bin within ROI.
+    roiPowers[n] = roiPowers[n]/(nMaxs[n]-nMins[n]);
+    roiRatios[n] = 10 * roiPowers[n]/specPower;
+    if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"roiPower[%d]=%ld",n,roiPowers[n]);
+  }
+  
 
   // Calculate the simplified spectrum - power in 1Hz bins.
   for (int ifreq=0;ifreq<10;ifreq++) {

@@ -4,7 +4,7 @@
 
   See http://openseizuredetector.org.uk for more information.
 
-  Copyright Graham Jones, 2015, 2016
+  Copyright Graham Jones, 2015, 2016, 2017
 
   This file is part of pebble_sd.
 
@@ -50,6 +50,8 @@ int alarmThresh;     // Alarm threshold (average power of spectrum within
 int alarmRatioThresh;
 int nMax = 0;
 int nMin = 0;
+int nMins[4];
+int nMaxs[4];
 
 int fallActive = 0;     // fall detection active (0=inactive)
 int fallThreshMin = 0;  // fall detection minimum (lower) threshold (milli-g)
@@ -77,7 +79,9 @@ int maxLoc = 0;       // Location in output array of peak.
 int maxFreq = 0;      // Frequency corresponding to peak location.
 long specPower = 0;   // Average power of whole spectrum.
 long roiPower = 0;    // Average power of spectrum in region of interest
+long roiPowers[4];
 int roiRatio = 0;     // 10xroiPower/specPower
+int roiRatios[4];
 int freqRes = 0;      // Actually 1000 x frequency resolution
 
 int alarmState = 0;    // 0 = OK, 1 = WARNING, 2 = ALARM

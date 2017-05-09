@@ -4,7 +4,7 @@
 
   See http://openseizuredetector.org for more information.
 
-  Copyright Graham Jones, 2015, 2016.
+  Copyright Graham Jones, 2015, 2016, 2017
 
   This file is part of pebble_sd.
 
@@ -163,6 +163,7 @@ extern int sampleFreq;      // Sample frequency in Hz.
 extern int alarmFreqMin;    // Minimum frequency (in Hz) for analysis region of interest.
 extern int alarmFreqMax;    // Maximum frequency (in Hz) for analysis region of interest.
 extern int nMin, nMax;      // Bin number of region of interest boundaries.
+extern int nMins[4],nMaxs[4]; // Bin numbers for four regions of interest.
 extern int warnTime;        // number of seconds above threshold to raise warning
 extern int alarmTime;       // number of seconds above threshold to raise alarm.
 extern int alarmThresh;     // Alarm threshold (average power of spectrum within
@@ -181,6 +182,8 @@ extern int maxFreq;      // Frequency corresponding to peak location.
 extern long specPower;   // Average power of whole spectrum.
 extern long roiPower;    // Average power of spectrum in region of interest
 extern int roiRatio;     // ratio of roiPower to specPower (x10)
+extern long roiPowers[4]; // array storing the four regions of interest powers
+extern int roiRatios[4]; // array storing the four ROI ratios.
 extern int freqRes;      // Actually 1000 x frequency resolution
 
 extern int fallActive;    // fall detection active (0=inactive)
