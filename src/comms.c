@@ -157,7 +157,7 @@ void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
 }
 
 /***************************************************
- * Send some Seizure Detecto Data to the phone app.
+ * Send some Seizure Detector Data to the phone app.
  */
 void sendSdData() {
   DictionaryIterator *iter;
@@ -169,6 +169,7 @@ void sendSdData() {
   dict_write_uint32(iter,KEY_MAXFREQ,(uint32_t)maxFreq);
   dict_write_uint32(iter,KEY_SPECPOWER,(uint32_t)specPower);
   dict_write_uint32(iter,KEY_ROIPOWER,(uint32_t)roiPower);
+  dict_write_uint32(iter,KEY_ALARM_ROI,(uint32_t)alarmRoi);
   // Send simplified spectrum - just 10 integers so it fits in a message.
   dict_write_data(iter,KEY_SPEC_DATA,(uint8_t*)(&simpleSpec[0]),
 		  10*sizeof(simpleSpec[0]));

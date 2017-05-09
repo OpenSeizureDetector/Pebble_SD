@@ -124,6 +124,7 @@ extern const PebbleProcessInfo __pbl_app_info;
 #define KEY_VERSION_MAJOR 35
 #define KEY_VERSION_MINOR 36
 #define KEY_FREQ_CUTOFF 37
+#define KEY_ALARM_ROI 38
 
 // Values of the KEY_DATA_TYPE entry in a message
 #define DATA_TYPE_RESULTS 1   // Analysis Results
@@ -144,6 +145,7 @@ extern const PebbleProcessInfo __pbl_app_info;
 #define SD_MODE_FFT 0     // The original OpenSeizureDetector mode (FFT based)
 #define SD_MODE_RAW 1     // Send raw, unprocessed data to the phone.
 #define SD_MODE_FILTER 2  // Use digital filter rather than FFT.
+#define SD_MODE_FFT_MULTI_ROI 3  // Use multiple ROI FFT analysis.
 
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
@@ -202,6 +204,7 @@ extern int mutePeriod;    // the time to mute alarms following long press of
                           // UP button.
 
 extern int alarmState;    // 0 = OK, 1 = WARNING, 2 = ALARM, 3 = FALL
+extern int alarmRoi;      // id number of ROI causing alarm.
 extern int alarmCount;    // number of seconds that we have been in an alarm state.
 
 

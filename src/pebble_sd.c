@@ -85,6 +85,7 @@ int roiRatios[4];
 int freqRes = 0;      // Actually 1000 x frequency resolution
 
 int alarmState = 0;    // 0 = OK, 1 = WARNING, 2 = ALARM
+int alarmRoi = 0;
 int alarmCount = 0;    // number of seconds that we have been in an alarm state.
 
 
@@ -103,6 +104,7 @@ int alarmCount = 0;    // number of seconds that we have been in an alarm state.
 static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   static char s_batt_buffer[16];
   static char s_time_buffer[16];
+  static char s_alarm_msg_buffer[16];
   static int dataUpdateCount = 0;
   static int lastAlarmState = 0;
 
@@ -148,11 +150,15 @@ static void clock_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
     }
     if (alarmState == ALARM_STATE_WARN) {
       //vibes_short_pulse();
-      text_layer_set_text(alarm_layer, "WARNING");
+      snprintf(s_alarm_msg_buffer,sizeof(s_alarm_msg_buffer),
+	       "WARNING %d",alarmRoi);
+      text_layer_set_text(alarm_layer, s_alarm_msg_buffer);
     }
     if (alarmState == ALARM_STATE_ALARM) {
       //vibes_long_pulse();
-      text_layer_set_text(alarm_layer, "** ALARM **");
+      snprintf(s_alarm_msg_buffer,sizeof(s_alarm_msg_buffer),
+	       "* ALARM %d *",alarmRoi);
+      text_layer_set_text(alarm_layer, s_alarm_msg_buffer);
     }
     if (alarmState == ALARM_STATE_FALL) {
       //vibes_long_pulse();

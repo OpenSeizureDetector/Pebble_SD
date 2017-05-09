@@ -72,9 +72,29 @@ int getAmpl(int nBin) {
  * spectrum for an alarm state.
  */
 int alarm_check() {
+  bool inAlarm;
+  int i;
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"Alarm Check nMin=%d, nMax=%d",nMin,nMax);
 
-  if (roiPower>alarmThresh && roiRatio>alarmRatioThresh) {
+  inAlarm = false;
+  alarmRoi = 0;
+  if (sdMode == SD_MODE_FFT) {
+    inAlarm = (roiPower>alarmThresh) && (roiRatio>alarmRatioThresh);
+  }
+  // Check each of the multiple ROIs - any one being in alarm state is an alarm.
+  else if (sdMode == SD_MODE_FFT_MULTI_ROI) {
+    if (roiPower>alarmThresh) {
+      for (i=0;i<=3;i++) {
+	if (roiRatios[i]>alarmRatioThresh) {
+	  inAlarm = true;
+	  alarmRoi = i;
+	  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"doAnalysis() - alarm in ROI %d", alarmRoi);
+	}
+      }
+    }
+  }
+  
+  if (inAlarm) {
     alarmCount+=samplePeriod;
     if (alarmCount>alarmTime) {
       alarmState = 2;
