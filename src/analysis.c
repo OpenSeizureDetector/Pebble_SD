@@ -102,8 +102,14 @@ int alarm_check() {
       alarmState = 1;
     }
   } else {
-    alarmState = 0;
-    alarmCount = 0;
+    // If we are in an ALARM state, revert back to WARNING, otherwise
+    // revert back to OK.
+    if (alarmState == 2) {
+      alarmState = 1;
+    } else {
+      alarmState = 0;
+      alarmCount = 0;
+    }
   }
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"alarmState = %d, alarmCount=%d",alarmState,alarmCount);
 

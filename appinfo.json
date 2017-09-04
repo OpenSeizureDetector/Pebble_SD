@@ -3,8 +3,8 @@
   "shortName": "OpenSeizureDetector",
   "longName": "OpenSeizureDetector",
   "companyName": "OpenSeizureDetector",
-  "versionCode": 9,
-  "versionLabel": "2.5",
+  "versionCode": 10,
+  "versionLabel": "2.6",
   "watchapp": {
     "watchface": false
   },
