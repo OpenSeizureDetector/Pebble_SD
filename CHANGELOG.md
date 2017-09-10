@@ -1,6 +1,9 @@
 	CHANGELOG
 	=========
-
+	V2.6 - Made ALARM state revert to WARNING when non-alarm condition detected rather than straight back to OK - avoids full reset if user falls to the ground during WARNING condition.
+	
+	V2.5 - Added multi ROI mode
+	
 	v2.3 (28 July 2016) - Removed redundant data manipulation to reduce battery consumption.
 	Added ability to change analysis period from
 	default 5 second period (requires Android_Pebble_SD v2.0.7 or higher)
