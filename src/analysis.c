@@ -31,6 +31,8 @@
 
 #include "pebble_sd.h"
 
+#include <stdio.h>
+#include <time.h>
 
 /* GLOBAL VARIABLES */
 uint32_t num_samples = NSAMP_MAX;
@@ -72,6 +74,7 @@ int getAmpl(int nBin) {
  * spectrum for an alarm state.
  */
 int alarm_check() {
+  clock_t t_start, t_end, t_total;
   bool inAlarm;
   int i;
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"Alarm Check nMin=%d, nMax=%d",nMin,nMax);
@@ -98,6 +101,7 @@ int alarm_check() {
     alarmCount+=samplePeriod;
     if (alarmCount>alarmTime) {
       alarmState = 2;
+      t_start = clock();
     } else if (alarmCount>warnTime) {
       alarmState = 1;
     }
@@ -107,10 +111,14 @@ int alarm_check() {
     if (alarmState == 2) {
       alarmState = 1;
     } else {
+      t_end = clock():
+      t_total = t_end - t_start;
+      double time_taken = ((double)t_total)/CLOCKS_PER_SEC;
       alarmState = 0;
       alarmCount = 0;
     }
   }
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"Duration = %f s", time_taken);
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"alarmState = %d, alarmCount=%d",alarmState,alarmCount);
 
   return(alarmState);
